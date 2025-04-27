@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { 
@@ -19,7 +18,6 @@ import SeverityBadge from '@/components/SeverityBadge';
 import ProgressChart from '@/components/ProgressChart';
 
 const DashboardPage: React.FC = () => {
-  // Mock data - in a real app, this would come from the backend
   const userData = {
     name: "Jamie Smith",
     currentSeverity: 'mild' as 'none' | 'mild' | 'severe',
@@ -43,14 +41,14 @@ const DashboardPage: React.FC = () => {
     ],
     
     progressData: [
-      { date: "Jan 1", value: 80, severity: 'severe' },
-      { date: "Jan 8", value: 75, severity: 'severe' },
-      { date: "Jan 15", value: 70, severity: 'severe' },
-      { date: "Jan 22", value: 65, severity: 'mild' },
-      { date: "Jan 29", value: 60, severity: 'mild' },
-      { date: "Feb 5", value: 50, severity: 'mild' },
-      { date: "Feb 12", value: 40, severity: 'mild' },
-    ],
+      { date: "Jan 1", value: 80, severity: 'severe' as const },
+      { date: "Jan 8", value: 75, severity: 'severe' as const },
+      { date: "Jan 15", value: 70, severity: 'severe' as const },
+      { date: "Jan 22", value: 65, severity: 'mild' as const },
+      { date: "Jan 29", value: 60, severity: 'mild' as const },
+      { date: "Feb 5", value: 50, severity: 'mild' as const },
+      { date: "Feb 12", value: 40, severity: 'mild' as const },
+    ] as const,
   };
 
   return (
