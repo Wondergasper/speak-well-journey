@@ -1,7 +1,6 @@
-
 import React from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Mic, ArrowLeft, Mail, Lock, GitHub, Google } from 'lucide-react';
+import { Mic, ArrowLeft, Mail, Lock, Github } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -120,10 +119,10 @@ const LoginPage: React.FC = () => {
               
               <div className="grid grid-cols-2 gap-3">
                 <Button variant="outline" className="w-full" type="button">
-                  <Google className="mr-2 h-4 w-4" /> Google
+                  <Mail className="mr-2 h-4 w-4" /> Email
                 </Button>
                 <Button variant="outline" className="w-full" type="button">
-                  <GitHub className="mr-2 h-4 w-4" /> GitHub
+                  <Github className="mr-2 h-4 w-4" /> Github
                 </Button>
               </div>
             </form>
