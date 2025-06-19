@@ -1,0 +1,27 @@
+fastapi>=0.68.0
+uvicorn>=0.15.0
+python-multipart
+python-jose[cryptography]
+passlib[bcrypt]
+sqlalchemy
+alembic
+psycopg2-binary
+pydantic
+pydantic-settings
+python-dotenv
+torch
+torchaudio
+transformers
+numpy
+websockets
+Flask-CORS
+Flask-RESTful
+scipy
+scikit-learn
+# tensorflow  # Uncomment if using TensorFlow
+librosa
+soundfile
+Flask-SQLAlchemy
+Flask-JWT-Extended
+Werkzeug
+marshmallow
