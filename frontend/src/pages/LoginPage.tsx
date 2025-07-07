@@ -110,21 +110,7 @@ const LoginPage: React.FC = () => {
                 {isLoading ? "Signing in..." : "Sign In"}
               </Button>
               
-              <div className="relative my-6">
-                <Separator />
-                <div className="absolute inset-0 flex items-center justify-center">
-                  <span className="bg-white px-2 text-sm text-gray-500">or continue with</span>
-                </div>
-              </div>
               
-              <div className="grid grid-cols-2 gap-3">
-                <Button variant="outline" className="w-full" type="button">
-                  <Mail className="mr-2 h-4 w-4" /> Email
-                </Button>
-                <Button variant="outline" className="w-full" type="button">
-                  <Github className="mr-2 h-4 w-4" /> Github
-                </Button>
-              </div>
             </form>
           </CardContent>
           <CardFooter className="flex justify-center">
