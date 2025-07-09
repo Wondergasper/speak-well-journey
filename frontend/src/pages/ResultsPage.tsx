@@ -106,40 +106,7 @@ const ResultsPage: React.FC = () => {
                   </div>
                 </div>
 
-                <div className="border-t pt-6">
-                  <h3 className="text-lg font-bold mb-4">Detailed Analysis</h3>
-                  <div className="space-y-4">
-                    <div>
-                      <h4 className="font-medium mb-1">Repetitions</h4>
-                      <p className="text-gray-600 dark:text-gray-300 mb-1">
-                        {analysisResults.details.repetitions.count} instances detected
-                      </p>
-                      <div className="bg-gray-100 dark:bg-gray-800 px-3 py-2 rounded text-sm">
-                        Examples: {analysisResults.details.repetitions.examples.join(", ")}
-                      </div>
-                    </div>
-
-                    <div>
-                      <h4 className="font-medium mb-1">Blocks</h4>
-                      <p className="text-gray-600 dark:text-gray-300 mb-1">
-                        {analysisResults.details.blocks.count} instances detected
-                      </p>
-                      <div className="bg-gray-100 dark:bg-gray-800 px-3 py-2 rounded text-sm">
-                        Examples: {analysisResults.details.blocks.examples.join(", ")}
-                      </div>
-                    </div>
-
-                    <div>
-                      <h4 className="font-medium mb-1">Prolongations</h4>
-                      <p className="text-gray-600 dark:text-gray-300 mb-1">
-                        {analysisResults.details.prolongations.count} instances detected
-                      </p>
-                      <div className="bg-gray-100 dark:bg-gray-800 px-3 py-2 rounded text-sm">
-                        Examples: {analysisResults.details.prolongations.examples.join(", ")}
-                      </div>
-                    </div>
-                  </div>
-                </div>
+                
               </CardContent>
             </Card>
 
