@@ -80,8 +80,14 @@ export default {
 					},
 					"yellow": {
 						"100": "#FEF7CD"
-					}
+					},
+					
 				},
+				"therapy-red": {
+          				"500": "#EF4444", // Example red-500
+          				"600": "#DC2626", // Example red-600
+        		},
+
 				sidebar: {
 					DEFAULT: 'hsl(var(--sidebar-background))',
 					foreground: 'hsl(var(--sidebar-foreground))',

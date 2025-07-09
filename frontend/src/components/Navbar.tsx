@@ -25,9 +25,7 @@ const Navbar = () => {
             <Link to="/exercises" className="text-gray-700 dark:text-gray-300 hover:text-therapy-purple-500 dark:hover:text-therapy-purple-300">
               Exercises
             </Link>
-            <Link to="/record" className="text-gray-700 dark:text-gray-300 hover:text-therapy-purple-500 dark:hover:text-therapy-purple-300">
-              Record Speech
-            </Link>
+            
             
             <div className="flex items-center gap-3">
               <ThemeToggle />
@@ -37,7 +35,7 @@ const Navbar = () => {
                 </Link>
               </Button>
               <Button asChild variant="default" className="bg-therapy-purple-500 hover:bg-therapy-purple-700">
-                <Link to="/record">Start Session</Link>
+                <Link to="/exercises">Start Session</Link>
               </Button>
             </div>
           </div>
@@ -74,13 +72,7 @@ const Navbar = () => {
               >
                 Exercises
               </Link>
-              <Link 
-                to="/record" 
-                className="px-3 py-2 rounded-md text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800"
-                onClick={() => setIsMenuOpen(false)}
-              >
-                Record Speech
-              </Link>
+              
               <Link 
                 to="/profile" 
                 className="px-3 py-2 rounded-md text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800"

@@ -16,6 +16,9 @@ import ForgotPasswordPage from "./pages/ForgotPasswordPage";
 import ProgressTrackerPage from "./pages/ProgressTrackerPage";
 import CommunityPage from "./pages/CommunityPage";
 import SettingsPage from "./pages/SettingsPage";
+import OnBoardingPage from "./pages/OnBoardingPage";
+import BonusResourcePage from "./pages/BonusResources";
+import ProgressAnalysisPage from "./pages/ProgressAnalysisPage"
 
 const queryClient = new QueryClient();
 
@@ -38,6 +41,9 @@ const App = () => (
           <Route path="/progress" element={<ProgressTrackerPage />} />
           <Route path="/community" element={<CommunityPage />} />
           <Route path="/settings" element={<SettingsPage />} />
+          <Route path="/onboarding" element={<OnBoardingPage />} />
+          <Route path="/bonus-resources" element={<BonusResourcePage />} />
+          <Route path="/progress-analysis" element={<ProgressAnalysisPage />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </BrowserRouter>

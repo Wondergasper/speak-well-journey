@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { ArrowLeft, ArrowRight, CheckCircle, BookOpen, RefreshCw } from 'lucide-react';
+import { ArrowLeft, ArrowRight, CheckCircle, BookOpen, RefreshCw, TrendingUp, TrendingDown } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import Navbar from '@/components/Navbar';
@@ -9,11 +9,15 @@ import SeverityBadge from '@/components/SeverityBadge';
 
 const ResultsPage: React.FC = () => {
   const navigate = useNavigate();
-  
-  // Mock data - in a real app, this would come from the backend analysis
+
+  // Simulated current and previous results 
+  const previousScore = 52;
+  const currentScore = 62;
+
   const analysisResults = {
     severity: 'mild' as 'none' | 'mild' | 'severe',
-    score: 62,
+    score: currentScore,
+    previousScore: previousScore,
     details: {
       repetitions: { count: 8, examples: ["st-st-stairs", "w-w-water"] },
       blocks: { count: 3, examples: ["...table", "...phone"] },
@@ -31,6 +35,9 @@ const ResultsPage: React.FC = () => {
     ]
   };
 
+  const scoreChange = currentScore - previousScore;
+  const scoreTrendIcon = scoreChange > 0 ? <TrendingUp className="text-green-500" /> : <TrendingDown className="text-red-500" />;
+
   const handleTryAgain = () => {
     navigate('/record');
   };
@@ -42,7 +49,7 @@ const ResultsPage: React.FC = () => {
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex flex-col">
       <Navbar />
-      
+
       <div className="flex-1 container mx-auto px-4 py-8">
         <div className="max-w-4xl mx-auto">
           <div className="mb-6">
@@ -53,7 +60,7 @@ const ResultsPage: React.FC = () => {
               <ArrowLeft className="mr-1 h-4 w-4" />
               Back to Recording
             </Link>
-            
+
             <h1 className="text-3xl font-bold mt-4">Your Speech Analysis Results</h1>
             <p className="text-gray-600 dark:text-gray-300 mt-2">
               Based on your recent recording, we've analyzed your speech patterns
@@ -89,6 +96,16 @@ const ResultsPage: React.FC = () => {
                   </div>
                 </div>
 
+                <div className="bg-gray-50 dark:bg-gray-800 p-4 rounded-md text-sm text-gray-600 dark:text-gray-300 mb-4">
+                  <div className="flex justify-between">
+                    <span><strong>Previous Score:</strong> {analysisResults.previousScore}</span>
+                    <span className="flex items-center gap-1">
+                      {scoreTrendIcon}
+                      <strong>{Math.abs(scoreChange)}</strong> point {scoreChange >= 0 ? 'improvement' : 'decline'}
+                    </span>
+                  </div>
+                </div>
+
                 <div className="border-t pt-6">
                   <h3 className="text-lg font-bold mb-4">Detailed Analysis</h3>
                   <div className="space-y-4">
@@ -101,7 +118,7 @@ const ResultsPage: React.FC = () => {
                         Examples: {analysisResults.details.repetitions.examples.join(", ")}
                       </div>
                     </div>
-                    
+
                     <div>
                       <h4 className="font-medium mb-1">Blocks</h4>
                       <p className="text-gray-600 dark:text-gray-300 mb-1">
@@ -111,7 +128,7 @@ const ResultsPage: React.FC = () => {
                         Examples: {analysisResults.details.blocks.examples.join(", ")}
                       </div>
                     </div>
-                    
+
                     <div>
                       <h4 className="font-medium mb-1">Prolongations</h4>
                       <p className="text-gray-600 dark:text-gray-300 mb-1">
@@ -125,7 +142,7 @@ const ResultsPage: React.FC = () => {
                 </div>
               </CardContent>
             </Card>
-            
+
             {/* Recommendations Card */}
             <Card>
               <CardContent className="p-6">
@@ -135,7 +152,7 @@ const ResultsPage: React.FC = () => {
                   </div>
                   <h3 className="text-lg font-bold">Recommendations</h3>
                 </div>
-                
+
                 <ul className="space-y-3 mb-6">
                   {analysisResults.recommendations.map((recommendation, index) => (
                     <li key={index} className="flex items-start gap-2">
@@ -148,7 +165,7 @@ const ResultsPage: React.FC = () => {
                     </li>
                   ))}
                 </ul>
-                
+
                 <div className="border-t pt-4 mb-6">
                   <div className="flex items-center justify-between mb-3">
                     <h4 className="font-medium">Recommended Exercises</h4>
@@ -170,7 +187,7 @@ const ResultsPage: React.FC = () => {
                     ))}
                   </div>
                 </div>
-                
+
                 <div className="space-y-3">
                   <Button 
                     variant="outline" 
@@ -191,7 +208,7 @@ const ResultsPage: React.FC = () => {
               </CardContent>
             </Card>
           </div>
-          
+
           <div className="bg-therapy-blue-50 dark:bg-blue-900/20 rounded-lg p-4 border border-therapy-blue-300/30 text-sm text-gray-700 dark:text-gray-300">
             <p>
               <strong>Remember:</strong> Speech therapy is a journey. Regular practice of the recommended exercises and consistent recording sessions will help track your progress over time.
