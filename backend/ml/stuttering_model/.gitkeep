@@ -1,0 +1,10 @@
+
+# This directory should contain your trained Wav2Vec2 model files:
+# - config.json
+# - preprocessor_config.json  
+# - special_tokens_map.json
+# - tokenizer_config.json
+# - vocab.json
+# - pytorch_model.bin
+#
+# Place your trained model files from Google Drive here
