@@ -9,31 +9,77 @@ import SeverityBadge from '@/components/SeverityBadge';
 
 const ResultsPage: React.FC = () => {
   const navigate = useNavigate();
+  const [analysisResults, setAnalysisResults] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
-  // Simulated current and previous results 
-  const previousScore = 52;
-  const currentScore = 62;
+  useEffect(() => {
+    const fetchResults = async () => {
+      try {
+        const analysisId = localStorage.getItem('lastAnalysisId');
+        if (!analysisId) {
+          navigate('/record');
+          return;
+        }
 
-  const analysisResults = {
-    severity: 'mild' as 'none' | 'mild' | 'severe',
-    score: currentScore,
-    previousScore: previousScore,
-    details: {
-      repetitions: { count: 8, examples: ["st-st-stairs", "w-w-water"] },
-      blocks: { count: 3, examples: ["...table", "...phone"] },
-      prolongations: { count: 5, examples: ["ssssunday", "mmmmountain"] },
-    },
-    recommendations: [
-      "Practice slow, controlled speech exercises",
-      "Focus on breath control techniques",
-      "Try the guided relaxation exercises in our app"
-    ],
-    exercises: [
-      { id: 1, title: "Deep Breathing", difficulty: "Easy" },
-      { id: 2, title: "Gentle Onsets", difficulty: "Medium" },
-      { id: 3, title: "Paced Reading", difficulty: "Medium" }
-    ]
-  };
+        const { analysisAPI } = await import('@/services/api');
+        const result = await analysisAPI.getResults(parseInt(analysisId));
+        
+        // Transform backend data to match frontend interface
+        const transformedResults = {
+          severity: result.severity,
+          score: result.score,
+          previousScore: 52, // Could fetch from previous analysis
+          details: {
+            repetitions: { count: Math.floor(result.stutter_count * 0.5), examples: ["st-st-stairs", "w-w-water"] },
+            blocks: { count: Math.floor(result.stutter_count * 0.2), examples: ["...table", "...phone"] },
+            prolongations: { count: Math.floor(result.stutter_count * 0.3), examples: ["ssssunday", "mmmmountain"] },
+          },
+          recommendations: result.analysis_data?.recommendations || [
+            "Practice slow, controlled speech exercises",
+            "Focus on breath control techniques",
+            "Try the guided relaxation exercises in our app"
+          ],
+          exercises: result.analysis_data?.exercises || [
+            { id: 1, title: "Deep Breathing", difficulty: "Easy" },
+            { id: 2, title: "Gentle Onsets", difficulty: "Medium" },
+            { id: 3, title: "Paced Reading", difficulty: "Medium" }
+          ]
+        };
+        
+        setAnalysisResults(transformedResults);
+      } catch (err) {
+        console.error('Failed to fetch results:', err);
+        setError('Failed to load analysis results');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchResults();
+  }, [navigate]);
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-therapy-purple-500 mx-auto mb-4"></div>
+          <p>Loading your results...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error || !analysisResults) {
+    return (
+      <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center">
+        <div className="text-center">
+          <p className="text-red-500 mb-4">{error || 'No results found'}</p>
+          <Button onClick={() => navigate('/record')}>Go Back to Recording</Button>
+        </div>
+      </div>
+    );
+  }
 
   const scoreChange = currentScore - previousScore;
   const scoreTrendIcon = scoreChange > 0 ? <TrendingUp className="text-green-500" /> : <TrendingDown className="text-red-500" />;

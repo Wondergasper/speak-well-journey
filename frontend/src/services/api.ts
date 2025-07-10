@@ -173,7 +173,7 @@ export const authAPI = {
 
 // Analysis API
 export const analysisAPI = {
-  uploadAudio: async (audioBlob: Blob): Promise<AnalysisResult> => {
+  uploadAudio: async (audioBlob: Blob): Promise<{ message: string; analysis_id: number }> => {
     const formData = new FormData();
     formData.append('audio', audioBlob, 'recording.wav');
 
@@ -198,6 +198,14 @@ export const analysisAPI = {
     }
 
     return await response.json();
+  },
+
+  getResults: async (analysisId: number): Promise<AnalysisResult> => {
+    return await apiCall<AnalysisResult>(`/analysis/results/${analysisId}`);
+  },
+
+  getHistory: async (): Promise<{ results: any[] }> => {
+    return await apiCall<{ results: any[] }>('/analysis/history');
   },
 };
 

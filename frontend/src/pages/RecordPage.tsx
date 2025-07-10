@@ -18,24 +18,43 @@ const RecordPage: React.FC = () => {
     setStep('recording');
   };
 
-  const handleRecordingComplete = (recording: Blob) => {
+  const handleRecordingComplete = async (recording: Blob) => {
     setStep('processing');
     
-    // Simulate processing the audio
-    let currentProgress = 0;
-    const interval = setInterval(() => {
-      currentProgress += 5;
-      setProgress(currentProgress);
+    try {
+      // Simulate upload progress
+      let currentProgress = 0;
+      const progressInterval = setInterval(() => {
+        currentProgress += 10;
+        setProgress(Math.min(currentProgress, 90));
+      }, 100);
+
+      // Upload audio for analysis
+      const { analysisAPI } = await import('@/services/api');
+      const result = await analysisAPI.uploadAudio(recording);
       
-      if (currentProgress >= 100) {
-        clearInterval(interval);
-        setProcessingComplete(true);
-        toast({
-          title: "Analysis Complete",
-          description: "Your speech has been analyzed. View your results.",
-        });
-      }
-    }, 200);
+      // Clear progress simulation
+      clearInterval(progressInterval);
+      setProgress(100);
+      
+      // Store analysis ID for results page
+      localStorage.setItem('lastAnalysisId', result.analysis_id.toString());
+      
+      setProcessingComplete(true);
+      toast({
+        title: "Analysis Complete",
+        description: "Your speech has been analyzed. View your results.",
+      });
+      
+    } catch (error) {
+      console.error('Upload failed:', error);
+      toast({
+        title: "Upload Failed",
+        description: "There was an error processing your audio. Please try again.",
+        variant: "destructive"
+      });
+      setStep('recording');
+    }
   };
 
   return (
