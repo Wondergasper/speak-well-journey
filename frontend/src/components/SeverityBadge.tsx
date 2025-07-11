@@ -1,8 +1,7 @@
-
 import React from 'react';
-import { CheckCircle, AlertTriangle, AlertCircle } from 'lucide-react';
+import { CheckCircle, AlertTriangle, AlertCircle, Flame } from 'lucide-react';
 
-type SeverityLevel = 'none' | 'mild' | 'severe';
+type SeverityLevel = 'none' | 'mild' | 'severe' | 'verySevere';
 
 interface SeverityBadgeProps {
   level: SeverityLevel;
@@ -22,13 +21,17 @@ const SeverityBadge: React.FC<SeverityBadgeProps> = ({
   };
 
   const renderIcon = () => {
+    const iconSize = size === 'sm' ? 'h-3 w-3' : size === 'md' ? 'h-4 w-4' : 'h-5 w-5';
+
     switch (level) {
       case 'none':
-        return <CheckCircle className={`${size === 'sm' ? 'h-3 w-3' : size === 'md' ? 'h-4 w-4' : 'h-5 w-5'} mr-1.5`} />;
+        return <CheckCircle className={`${iconSize} mr-1.5`} />;
       case 'mild':
-        return <AlertTriangle className={`${size === 'sm' ? 'h-3 w-3' : size === 'md' ? 'h-4 w-4' : 'h-5 w-5'} mr-1.5`} />;
+        return <AlertTriangle className={`${iconSize} mr-1.5`} />;
       case 'severe':
-        return <AlertCircle className={`${size === 'sm' ? 'h-3 w-3' : size === 'md' ? 'h-4 w-4' : 'h-5 w-5'} mr-1.5`} />;
+        return <AlertCircle className={`${iconSize} mr-1.5`} />;
+      case 'verySevere':
+        return <Flame className={`${iconSize} text-red-600 mr-1.5`} />;
       default:
         return null;
     }
@@ -42,6 +45,8 @@ const SeverityBadge: React.FC<SeverityBadgeProps> = ({
         return 'Mild Stutter';
       case 'severe':
         return 'Severe Stutter';
+      case 'verySevere':
+        return 'Very Severe Stutter';
       default:
         return '';
     }
@@ -50,7 +55,8 @@ const SeverityBadge: React.FC<SeverityBadgeProps> = ({
   const badgeClassMap = {
     none: 'badge-none',
     mild: 'badge-mild',
-    severe: 'badge-severe'
+    severe: 'badge-severe',
+    verySevere: 'badge-very-severe'
   };
 
   return (

@@ -158,31 +158,84 @@ const DashboardPage: React.FC = () => {
     setShowScheduleModal(false);
   };
 
-  const userData = {
-    name: 'Jamie Smith',
-    currentSeverity: 'mild' as 'none' | 'mild' | 'severe',
-    sessionsCompleted: 8,
-    minutesPracticed: 47,
-    lastSession: '2 days ago',
-    streak: 4,
-    nextGoal: 'Complete 3 more sessions this week',
-    progressPercent: 65,
-    recentExercises: [
-      { id: 1, name: 'Breath Control', completedAt: 'Today', duration: '5 min' },
-      { id: 2, name: 'Paced Reading', completedAt: 'Yesterday', duration: '10 min' },
-      { id: 3, name: 'Gentle Onset', completedAt: '3 days ago', duration: '8 min' },
-    ],
-    personalizedPlan: {
-      goal: 'Reduce repetition and blocking episodes',
-      strategies: ['Fluency drills', 'Breath pacing', 'Daily tracking'],
-      duration: '3 weeks',
-    },
+
+  type UserData = {
+  name: string;
+  currentSeverity: 'none' | 'mild' | 'severe' | 'verySevere';
+  sessionsCompleted: number;
+  streak: number;
+  minutesPracticed: number;
+  lastSession: string;
+  nextGoal: string;
+  progressPercent: number;
+  recentExercises: {
+    id: number;
+    name: string;
+    completedAt: string;
+    duration: string;
+  }[];
+  personalizedPlan: {
+    goal: string;
+    strategies: string[];
+    duration: string;
   };
+};
+
+
+      const [userData, setUserData] = React.useState<UserData | null>(null);
+          React.useEffect(() => {
+  const stored = localStorage.getItem('userData');
+  if (stored) {
+    const parsed = JSON.parse(stored);
+
+    const lastSessionDate = new Date(parsed.lastSession);
+    const todayDate = new Date();
+    const difference = Math.floor((todayDate.getTime() - lastSessionDate.getTime()) / (1000 * 60 * 60 * 24));
+
+    let updatedStreak = parsed.streak || 0;
+
+    if (difference >= 2) {
+      updatedStreak = 0; // missed more than 1 day, reset
+    }
+
+    const enriched: UserData = {
+      name: parsed.name || 'User',
+      currentSeverity: parsed.severity || 'mild',
+      sessionsCompleted: parsed.sessionsCompleted || 0,
+      streak: updatedStreak,
+      minutesPracticed: parsed.minutesPracticed || 0,
+      lastSession: parsed.lastSession || 'Not yet started',
+      nextGoal: parsed.nextGoal || 'Complete your first session!',
+      progressPercent: parsed.progressPercent || 0,
+      recentExercises: parsed.recentExercises || [],
+      personalizedPlan: parsed.personalizedPlan || {
+        goal: 'Build confidence and fluency',
+        strategies: ['Practice daily', 'Record yourself', 'Use gentle onset'],
+        duration: '3 weeks',
+      },
+    };
+
+    localStorage.setItem('userData', JSON.stringify({ ...parsed, streak: updatedStreak }));
+
+    setUserData(enriched);
+  }
+}, []);
+
+
 
   const fadeUp = {
     hidden: { opacity: 0, y: 20 },
     visible: { opacity: 1, y: 0 },
   };
+
+    if (!userData) {
+    return (
+      <div className="min-h-screen flex items-center justify-center text-gray-500">
+        <p>No user data found. Please complete onboarding.</p>
+      </div>
+    );
+    }
+
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-white via-purple-50 to-therapy-peach-50 dark:from-gray-950 dark:to-gray-900 flex flex-col transition-colors duration-500">
@@ -259,7 +312,7 @@ const DashboardPage: React.FC = () => {
       </div>
       <div className="flex flex-col gap-2 w-full md:w-auto">
         <Button asChild className="bg-therapy-purple-500 hover:bg-therapy-purple-600 text-white w-full md:w-auto">
-          <Link to="/exercises">
+          <Link to="/session">
             <PlayCircle className="w-4 h-4 mr-2" /> Start Session
           </Link>
         </Button>

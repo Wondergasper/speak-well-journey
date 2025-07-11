@@ -19,6 +19,8 @@ import SettingsPage from "./pages/SettingsPage";
 import OnBoardingPage from "./pages/OnBoardingPage";
 import BonusResourcePage from "./pages/BonusResources";
 import LearnMorePage from "./pages/LearnMorePage";
+import SessionPage from "./pages/SessionPage";
+import SessionExercisePage from "./pages/SessionExercisePage";
 
 const queryClient = new QueryClient();
 
@@ -44,6 +46,8 @@ const App = () => (
           <Route path="/onboarding" element={<OnBoardingPage />} />
           <Route path="/bonus-resources" element={<BonusResourcePage />} />
           <Route path="/learn-more" element={<LearnMorePage />} />
+          <Route path="/session" element={<SessionPage/>} />
+          <Route path="/session-exercise" element={<SessionExercisePage/>} />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </BrowserRouter>
