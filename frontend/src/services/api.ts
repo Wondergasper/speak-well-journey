@@ -284,6 +284,24 @@ export const settingsAPI = {
   },
 };
 
+// Notifications API
+export const notificationsAPI = {
+  getAll: async (): Promise<any[]> => {
+    return await apiCall<any[]>('/notifications');
+  },
+  create: async (message: string): Promise<any> => {
+    return await apiCall<any>('/notifications', {
+      method: 'POST',
+      body: JSON.stringify({ message }),
+    });
+  },
+  markAsRead: async (id: number): Promise<any> => {
+    return await apiCall<any>(`/notifications/${id}/read`, {
+      method: 'PUT',
+    });
+  },
+};
+
 // Export all APIs
 export const api = {
   auth: authAPI,
@@ -293,6 +311,7 @@ export const api = {
   community: communityAPI,
   profile: profileAPI,
   settings: settingsAPI,
+  notifications: notificationsAPI,
 };
 
 export default api; 

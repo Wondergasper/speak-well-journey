@@ -69,6 +69,7 @@ def create_app():
     from routes.settings import settings_bp
     from routes.community import community_bp
     from routes.analytics import analytics_bp
+    from routes.notifications import notifications_bp
 
     app.register_blueprint(auth_bp, url_prefix='/api/auth')
     app.register_blueprint(exercises_bp, url_prefix='/api/exercises')
@@ -79,6 +80,7 @@ def create_app():
     app.register_blueprint(settings_bp, url_prefix='/api/settings')
     app.register_blueprint(community_bp, url_prefix='/api/community')
     app.register_blueprint(analytics_bp, url_prefix='/api/analytics')
+    app.register_blueprint(notifications_bp, url_prefix='/api/notifications')
 
     # Global error handlers
     @app.errorhandler(404)
