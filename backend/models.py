@@ -1,3 +1,4 @@
+from datetime import datetime
 from db import db
 from werkzeug.security import generate_password_hash, check_password_hash
 
@@ -56,3 +57,12 @@ class Post(db.Model):
     author_id = db.Column(db.Integer, db.ForeignKey('user.id'))
     content = db.Column(db.Text)
     created_at = db.Column(db.DateTime)
+
+class Notification(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    message = db.Column(db.String(255), nullable=False)
+    read = db.Column(db.Boolean, default=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    user = db.relationship('User', backref=db.backref('notifications', lazy=True))
