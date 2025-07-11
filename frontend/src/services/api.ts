@@ -211,18 +211,17 @@ export const analysisAPI = {
 
 // Exercises API
 export const exercisesAPI = {
-  getAll: async (): Promise<Exercise[]> => {
-    return await apiCall<Exercise[]>('/exercises');
+  getAll: async (severity?: string): Promise<any[]> => {
+    const params = severity ? `?severity=${severity}` : '';
+    return await apiCall<any[]>(`/exercises${params}`);
   },
-
-  getById: async (id: number): Promise<Exercise> => {
-    return await apiCall<Exercise>(`/exercises/${id}`);
+  getById: async (id: number): Promise<any> => {
+    return await apiCall<any>(`/exercises/${id}`);
   },
-
-  complete: async (exerciseId: number): Promise<{ message: string; data: any }> => {
-    return await apiCall<{ message: string; data: any }>('/exercises/complete', {
+  complete: async (exerciseId: number, data?: { duration?: number; notes?: string }): Promise<any> => {
+    return await apiCall<any>(`/exercises/${exerciseId}/complete`, {
       method: 'POST',
-      body: JSON.stringify({ exercise_id: exerciseId }),
+      body: JSON.stringify(data || {}),
     });
   },
 };

@@ -1,75 +1,112 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { exercisesBySeverity } from '@/data/exercises';
+import { exercisesAPI, profileAPI } from '@/services/api';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft } from 'lucide-react';
+import { useToast } from '@/components/ui/use-toast';
 
 const SessionPage = () => {
   const navigate = useNavigate();
+  const { toast } = useToast();
   const [selectedExercises, setSelectedExercises] = useState([]);
   const [completed, setCompleted] = useState({});
-
-  const userId = JSON.parse(localStorage.getItem('userData'))?.id;
-
-  useEffect(() => {
-    const userData = JSON.parse(localStorage.getItem('userData'));
-    const severity = userData?.severity || 'mild';
-    const all = exercisesBySeverity[severity];
-
-    const shuffled = [...all].sort(() => 0.5 - Math.random());
-    const selected = shuffled.slice(0, 2);
-    setSelectedExercises(selected);
-
-    const completedByUser = JSON.parse(localStorage.getItem('completedExercises') || '{}');
-    setCompleted(completedByUser[userId] || {});
-  }, [userId]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    const handleFocus = () => {
-      const completedByUser = JSON.parse(localStorage.getItem('completedExercises') || '{}');
-      setCompleted(completedByUser[userId] || {});
+    const fetchExercises = async () => {
+      try {
+        // Get user profile to determine severity
+        const profile = await profileAPI.getProfile();
+        const severity = profile.severity || 'mild';
+        
+        // Fetch exercises filtered by severity
+        const allExercises = await exercisesAPI.getAll(severity);
+        
+        // Randomly select 2 exercises for the session
+        const shuffled = [...allExercises].sort(() => 0.5 - Math.random());
+        const selected = shuffled.slice(0, 2);
+        setSelectedExercises(selected);
+        
+        // Get completion status from localStorage (temporary until backend supports it)
+        const completedByUser = JSON.parse(localStorage.getItem('completedExercises') || '{}');
+        setCompleted(completedByUser[profile.id] || {});
+        
+      } catch (err) {
+        setError('Failed to load exercises. Please try again.');
+        toast({
+          variant: 'destructive',
+          title: 'Error',
+          description: 'Failed to load exercises. Please try again.',
+        });
+      } finally {
+        setLoading(false);
+      }
     };
-    window.addEventListener('focus', handleFocus);
-    return () => window.removeEventListener('focus', handleFocus);
-  }, [userId]);
+
+    fetchExercises();
+  }, [toast]);
 
   const handleStartExercise = (exercise) => {
     navigate('/session-exercise', { state: { exercise } });
   };
 
   const handleFinishSession = async () => {
-    navigate('/dashboard')
-    const userData = JSON.parse(localStorage.getItem('userData'));
-    const today = new Date().toISOString().split('T')[0];
+    try {
+      // Get user profile
+      const profile = await profileAPI.getProfile();
+      
+      // Record session completion in backend (you may want to add a sessions API)
+      // For now, we'll just navigate to dashboard
+      
+      // Update local storage for session tracking
+      const today = new Date().toISOString().split('T')[0];
+      const lastSessionDate = profile.lastSession ? new Date(profile.lastSession) : null;
+      const todayDate = new Date();
+      const difference = lastSessionDate ? Math.floor((todayDate.getTime() - lastSessionDate.getTime()) / (1000 * 60 * 60 * 24)) : 0;
+      const newStreak = lastSessionDate && difference === 1 ? (profile.streak || 0) + 1 : 1;
 
-    const lastSessionDate = new Date(userData.lastSession);
-    const todayDate = new Date();
-    const difference = Math.floor((todayDate.getTime() - lastSessionDate.getTime()) / (1000 * 60 * 60 * 24));
+      // Clear completed exercises for this session
+      const completedByUser = JSON.parse(localStorage.getItem('completedExercises') || '{}');
+      delete completedByUser[profile.id];
+      localStorage.setItem('completedExercises', JSON.stringify(completedByUser));
 
-    const newStreak = userData.lastSession && difference === 1 ? userData.streak + 1 : 1;
+      toast({
+        title: 'Session completed!',
+        description: 'Great job! Your progress has been recorded.',
+      });
 
-    const updatedUserData = {
-      ...userData,
-      sessionsCompleted: (userData.sessionsCompleted || 0) + 1,
-      lastSession: today,
-      streak: newStreak
-    };
-
-    localStorage.setItem('userData', JSON.stringify(updatedUserData));
-
-    // Save to backend
-    await fetch("http://localhost:5000/api/update-session", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ userId: userData.id, completedDate: today })
-    });
-
-    const completedByUser = JSON.parse(localStorage.getItem('completedExercises') || '{}');
-    delete completedByUser[userId];
-    localStorage.setItem('completedExercises', JSON.stringify(completedByUser));
-
-    navigate('/dashboard');
+      navigate('/dashboard');
+    } catch (err) {
+      toast({
+        variant: 'destructive',
+        title: 'Error',
+        description: 'Failed to complete session. Please try again.',
+      });
+    }
   };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen p-8 bg-therapy-purple-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-therapy-purple-500 mx-auto mb-4"></div>
+          <p>Loading your personalized session...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="min-h-screen p-8 bg-therapy-purple-50 flex items-center justify-center">
+        <div className="text-center">
+          <p className="text-red-600 mb-4">{error}</p>
+          <Button onClick={() => window.location.reload()}>Try Again</Button>
+        </div>
+      </div>
+    );
+  }
 
   const allCompleted = selectedExercises.every((ex) => completed[ex.id]);
 

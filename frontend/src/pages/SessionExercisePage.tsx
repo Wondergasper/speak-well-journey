@@ -2,10 +2,13 @@
 import React from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
+import { exercisesAPI } from '@/services/api';
+import { useToast } from '@/components/ui/use-toast';
 
 const SessionExercisePage = () => {
   const navigate = useNavigate();
   const location = useLocation();
+  const { toast } = useToast();
 
   const exercise = location.state?.exercise;
 
@@ -19,7 +22,6 @@ const SessionExercisePage = () => {
   }
 
   const { id, title, description, videoUrl } = exercise;
-  const userId = JSON.parse(localStorage.getItem('userData'))?.id;
 
   // ✅ Safe YouTube embed conversion
   const getEmbedUrl = (input: unknown): string => {
@@ -33,13 +35,34 @@ const SessionExercisePage = () => {
     return input;
   };
 
-  const handleComplete = () => {
-    const allUsersProgress = JSON.parse(localStorage.getItem('completedExercises') || '{}');
-    const currentUserProgress = allUsersProgress[userId] || {};
-    currentUserProgress[id] = true;
-    allUsersProgress[userId] = currentUserProgress;
-    localStorage.setItem('completedExercises', JSON.stringify(allUsersProgress));
-    navigate('/session');
+  const handleComplete = async () => {
+    try {
+      // Record completion in backend
+      await exercisesAPI.complete(id, {
+        duration: 300, // 5 minutes default
+        notes: 'Completed via session'
+      });
+
+      // Also update localStorage for immediate UI feedback
+      const allUsersProgress = JSON.parse(localStorage.getItem('completedExercises') || '{}');
+      const currentUserProgress = allUsersProgress[id] || {};
+      currentUserProgress[id] = true;
+      allUsersProgress[id] = currentUserProgress;
+      localStorage.setItem('completedExercises', JSON.stringify(allUsersProgress));
+
+      toast({
+        title: 'Exercise completed!',
+        description: 'Great job! Your progress has been recorded.',
+      });
+
+      navigate('/session');
+    } catch (error) {
+      toast({
+        variant: 'destructive',
+        title: 'Error',
+        description: 'Failed to record completion. Please try again.',
+      });
+    }
   };
 
   return (

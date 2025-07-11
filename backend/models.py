@@ -9,6 +9,7 @@ class User(db.Model):
     password_hash = db.Column(db.String(128))
     bio = db.Column(db.Text)
     age = db.Column(db.Integer)
+    severity = db.Column(db.String(32), default='mild')  # none, mild, severe
     therapy_goals = db.Column(db.Text)
     created_at = db.Column(db.DateTime, default=db.func.current_timestamp())
 

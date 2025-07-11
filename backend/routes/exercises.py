@@ -3,6 +3,8 @@ from flask_jwt_extended import jwt_required, get_jwt_identity
 from models import Exercise
 from db import db
 from marshmallow import Schema, fields, ValidationError
+from models import Progress
+from datetime import datetime
 
 class CompleteExerciseSchema(Schema):
     exercise_id = fields.Int(required=True)
@@ -11,19 +13,27 @@ exercises_bp = Blueprint('exercises', __name__)
 
 @exercises_bp.route('/', methods=['GET'])
 @jwt_required()
-def list_exercises():
-    exercises = Exercise.query.all()
-    return jsonify([
-        {
-            'id': e.id, 
-            'title': e.title, 
-            'difficulty': e.difficulty,
-            'description': e.description,
-            'duration_minutes': e.duration_minutes,
-            'category': e.category
-        }
-        for e in exercises
-    ])
+def get_exercises():
+    user_id = get_jwt_identity()
+    severity = request.args.get('severity')  # Get severity from query params
+    
+    query = Exercise.query
+    
+    # Filter by severity if provided
+    if severity:
+        query = query.filter_by(severity=severity)
+    
+    exercises = query.all()
+    
+    return jsonify([{
+        'id': exercise.id,
+        'title': exercise.title,
+        'description': exercise.description,
+        'video_url': exercise.video_url,
+        'severity': exercise.severity,
+        'difficulty': exercise.difficulty,
+        'duration': exercise.duration
+    } for exercise in exercises])
 
 @exercises_bp.route('/<int:exercise_id>', methods=['GET'])
 @jwt_required()
@@ -68,3 +78,36 @@ def start_exercise(exercise_id):
         },
         'user_id': user_id
     }) 
+
+@exercises_bp.route('/<int:exercise_id>/complete', methods=['POST'])
+@jwt_required()
+def complete_exercise(exercise_id):
+    user_id = get_jwt_identity()
+    
+    # Check if exercise exists
+    exercise = Exercise.query.get(exercise_id)
+    if not exercise:
+        return jsonify({'error': 'Exercise not found'}), 404
+    
+    # Record completion in progress table
+    progress = Progress(
+        user_id=user_id,
+        exercise_id=exercise_id,
+        date=datetime.now().date(),
+        score=100,  # Default score for completion
+        session_duration=request.json.get('duration', 300),  # Default 5 minutes
+        severity_level=exercise.severity,
+        notes=request.json.get('notes', '')
+    )
+    
+    try:
+        db.session.add(progress)
+        db.session.commit()
+        
+        return jsonify({
+            'message': 'Exercise completed successfully',
+            'progress_id': progress.id
+        })
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'error': 'Failed to record completion'}), 500 
