@@ -14,6 +14,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
 import { useToast } from '@/components/ui/use-toast';
+import { authAPI } from '@/services/api';
 
 const SignupPage: React.FC = () => {
   const [isLoading, setIsLoading] = React.useState(false);
@@ -27,21 +28,22 @@ const SignupPage: React.FC = () => {
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setIsLoading(true);
-
     try {
-      await new Promise((resolve) => setTimeout(resolve, 1500));
-
+      await authAPI.signup({ name, email, password });
       toast({
         title: 'Account created successfully!',
         description: 'Welcome to SpeakWell. Get ready for your speech assessment.',
       });
-
       navigate('/onboarding');
     } catch (error) {
+      let message = 'Please check your information and try again.';
+      if (error && typeof error === 'object' && 'message' in error) {
+        message = (error as any).message;
+      }
       toast({
         variant: 'destructive',
         title: 'Registration failed',
-        description: 'Please check your information and try again.',
+        description: message,
       });
     } finally {
       setIsLoading(false);

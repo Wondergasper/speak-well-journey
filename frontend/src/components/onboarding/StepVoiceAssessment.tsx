@@ -2,6 +2,8 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Mic } from 'lucide-react';
+import { analysisAPI } from '@/services/api';
+import { useToast } from '@/components/ui/use-toast';
 
 const StepVoiceAssessment = ({ onNext, onBack, updateData }) => {
   const [isRecording, setIsRecording] = useState(false);
@@ -10,6 +12,7 @@ const StepVoiceAssessment = ({ onNext, onBack, updateData }) => {
   const [isLoading, setIsLoading] = useState(false);
   const audioChunks = useRef<Blob[]>([]);
   const waveRef = useRef<HTMLDivElement>(null);
+  const { toast } = useToast();
 
   useEffect(() => {
     let interval: NodeJS.Timeout;
@@ -31,17 +34,32 @@ const StepVoiceAssessment = ({ onNext, onBack, updateData }) => {
       }
     };
 
-    recorder.onstop = () => {
+    recorder.onstop = async () => {
       const audioBlob = new Blob(audioChunks.current, { type: 'audio/webm' });
       const url = URL.createObjectURL(audioBlob);
       setAudioUrl(url);
-
-      // Simulated ML call
       setIsLoading(true);
-      setTimeout(() => {
-        updateData({ audioBlob, severity: 'moderate' }); // Placeholder
+      try {
+        const result = await analysisAPI.uploadAudio(audioBlob);
+        // Optionally, fetch analysis details here if needed
+        updateData({ audioBlob, analysisId: result.analysis_id });
+        toast({
+          title: 'Analysis Complete',
+          description: 'Your voice has been analyzed.',
+        });
+      } catch (error) {
+        let message = 'Failed to analyze audio.';
+        if (error && typeof error === 'object' && 'message' in error) {
+          message = (error as any).message;
+        }
+        toast({
+          variant: 'destructive',
+          title: 'Analysis Failed',
+          description: message,
+        });
+      } finally {
         setIsLoading(false);
-      }, 2000);
+      }
     };
 
     recorder.start();

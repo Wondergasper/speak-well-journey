@@ -7,32 +7,34 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
 import { useToast } from '@/components/ui/use-toast';
+import { authAPI } from '@/services/api';
 
 const LoginPage: React.FC = () => {
   const [isLoading, setIsLoading] = React.useState(false);
   const navigate = useNavigate();
   const { toast } = useToast();
+  const [email, setEmail] = React.useState('');
+  const [password, setPassword] = React.useState('');
 
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setIsLoading(true);
-    
     try {
-      // In a real implementation, we would make an API call to authenticate the user
-      // For now, we'll simulate a successful login
-      await new Promise(resolve => setTimeout(resolve, 1500));
-      
+      await authAPI.login({ email, password });
       toast({
         title: "Login successful!",
         description: "Welcome back to SpeakWell.",
       });
-      
       navigate('/dashboard');
     } catch (error) {
+      let message = 'Invalid email or password.';
+      if (error && typeof error === 'object' && 'message' in error) {
+        message = (error as any).message;
+      }
       toast({
         variant: "destructive",
         title: "Login failed",
-        description: "Invalid email or password.",
+        description: message,
       });
     } finally {
       setIsLoading(false);
@@ -76,6 +78,8 @@ const LoginPage: React.FC = () => {
                     placeholder="you@example.com" 
                     className="pl-10" 
                     required
+                    value={email}
+                    onChange={e => setEmail(e.target.value)}
                   />
                 </div>
               </div>
@@ -98,6 +102,8 @@ const LoginPage: React.FC = () => {
                     placeholder="Enter your password" 
                     className="pl-10" 
                     required
+                    value={password}
+                    onChange={e => setPassword(e.target.value)}
                   />
                 </div>
               </div>

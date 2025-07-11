@@ -1,5 +1,5 @@
 // DashboardPage.tsx
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import {
   Calendar,
@@ -23,11 +23,32 @@ import { motion } from 'framer-motion';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Mic2 } from "lucide-react";
+import { profileAPI, progressAPI } from '@/services/api';
 
 const DashboardPage: React.FC = () => {
   const [selectedMood, setSelectedMood] = React.useState<string | null>(null);
   const [showScheduleModal, setShowScheduleModal] = React.useState(false);
   const [scheduledTime, setScheduledTime] = React.useState<string>('');
+  const [profile, setProfile] = useState<any>(null);
+  const [progress, setProgress] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const profileData = await profileAPI.getProfile();
+        const progressData = await progressAPI.getHistory();
+        setProfile(profileData);
+        setProgress(progressData.history || []);
+      } catch (err) {
+        setError('Failed to load dashboard data.');
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchData();
+  }, []);
 
   const tips = [
   'Speak slowly and take deep breaths before each sentence.',
@@ -158,70 +179,26 @@ const DashboardPage: React.FC = () => {
     setShowScheduleModal(false);
   };
 
-
-  type UserData = {
-  name: string;
-  currentSeverity: 'none' | 'mild' | 'severe' | 'verySevere';
-  sessionsCompleted: number;
-  streak: number;
-  minutesPracticed: number;
-  lastSession: string;
-  nextGoal: string;
-  progressPercent: number;
-  recentExercises: {
-    id: number;
-    name: string;
-    completedAt: string;
-    duration: string;
-  }[];
-  personalizedPlan: {
-    goal: string;
-    strategies: string[];
-    duration: string;
+  const userData = {
+    name: 'Jamie Smith',
+    currentSeverity: 'mild' as 'none' | 'mild' | 'severe',
+    sessionsCompleted: 8,
+    minutesPracticed: 47,
+    lastSession: '2 days ago',
+    streak: 4,
+    nextGoal: 'Complete 3 more sessions this week',
+    progressPercent: 65,
+    recentExercises: [
+      { id: 1, name: 'Breath Control', completedAt: 'Today', duration: '5 min' },
+      { id: 2, name: 'Paced Reading', completedAt: 'Yesterday', duration: '10 min' },
+      { id: 3, name: 'Gentle Onset', completedAt: '3 days ago', duration: '8 min' },
+    ],
+    personalizedPlan: {
+      goal: 'Reduce repetition and blocking episodes',
+      strategies: ['Fluency drills', 'Breath pacing', 'Daily tracking'],
+      duration: '3 weeks',
+    },
   };
-};
-
-
-      const [userData, setUserData] = React.useState<UserData | null>(null);
-          React.useEffect(() => {
-  const stored = localStorage.getItem('userData');
-  if (stored) {
-    const parsed = JSON.parse(stored);
-
-    const lastSessionDate = new Date(parsed.lastSession);
-    const todayDate = new Date();
-    const difference = Math.floor((todayDate.getTime() - lastSessionDate.getTime()) / (1000 * 60 * 60 * 24));
-
-    let updatedStreak = parsed.streak || 0;
-
-    if (difference >= 2) {
-      updatedStreak = 0; // missed more than 1 day, reset
-    }
-
-    const enriched: UserData = {
-      name: parsed.name || 'User',
-      currentSeverity: parsed.severity || 'mild',
-      sessionsCompleted: parsed.sessionsCompleted || 0,
-      streak: updatedStreak,
-      minutesPracticed: parsed.minutesPracticed || 0,
-      lastSession: parsed.lastSession || 'Not yet started',
-      nextGoal: parsed.nextGoal || 'Complete your first session!',
-      progressPercent: parsed.progressPercent || 0,
-      recentExercises: parsed.recentExercises || [],
-      personalizedPlan: parsed.personalizedPlan || {
-        goal: 'Build confidence and fluency',
-        strategies: ['Practice daily', 'Record yourself', 'Use gentle onset'],
-        duration: '3 weeks',
-      },
-    };
-
-    localStorage.setItem('userData', JSON.stringify({ ...parsed, streak: updatedStreak }));
-
-    setUserData(enriched);
-  }
-}, []);
-
-
 
   const fadeUp = {
     hidden: { opacity: 0, y: 20 },
@@ -241,55 +218,60 @@ const DashboardPage: React.FC = () => {
     <div className="min-h-screen bg-gradient-to-br from-white via-purple-50 to-therapy-peach-50 dark:from-gray-950 dark:to-gray-900 flex flex-col transition-colors duration-500">
       <Navbar />
       <div className="flex-1 container mx-auto px-4 py-8">
-        {/* Scheduled Reminder */}
-        {scheduledTime && (
-          <motion.div initial="hidden" animate="visible" variants={fadeUp} transition={{ duration: 0.4 }} className="mb-6">
-            <Card className="bg-yellow-50 border-l-4 border-yellow-400 p-4 dark:bg-yellow-900/10">
-              <div className="flex items-center gap-2">
-                <Clock3 className="w-5 h-5 text-yellow-600 dark:text-yellow-300" />
-                <p className="text-sm text-yellow-800 dark:text-yellow-100 font-medium">
-                  You have a session scheduled today at <span className="font-bold">{scheduledTime}</span>
-                </p>
-              </div>
-            </Card>
-          </motion.div>
-        )}
-
-        {/* Welcome Section */}
-        <motion.div initial="hidden" animate="visible" variants={fadeUp} transition={{ duration: 0.5 }} className="mb-8">
-          <h1 className="text-3xl font-bold text-therapy-purple-700 dark:text-therapy-purple-200">Welcome, {userData.name}</h1>
-          <p className="text-gray-600 dark:text-gray-400 mt-1">Here's an overview of your speech therapy progress</p>
-        </motion.div>
-
-        {/* Summary Cards */}
-        <motion.div initial="hidden" animate="visible" variants={fadeUp} transition={{ delay: 0.1, duration: 0.5 }} className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-          {[{
-            label: 'Current Severity',
-            value: <SeverityBadge level={userData.currentSeverity} />, icon: <BarChart2 className="h-5 w-5 text-therapy-purple-500" />, bg: 'bg-therapy-purple-100 dark:bg-therapy-purple-500/20'
-          }, {
-            label: 'Sessions Completed',
-            value: userData.sessionsCompleted, icon: <Calendar className="h-5 w-5 text-therapy-blue-500" />, bg: 'bg-therapy-blue-50 dark:bg-therapy-blue-500/20'
-          }, {
-            label: 'Current Streak',
-            value: `${userData.streak} days`, icon: <Award className="h-5 w-5 text-green-600" />, bg: 'bg-therapy-green-100 dark:bg-green-900/20'
-          }].map((card, idx) => (
-            <Card key={idx} className="transition-shadow hover:shadow-xl dark:bg-gray-800 dark:border-gray-700">
-              <CardContent className="p-6">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm text-gray-500 dark:text-gray-400">{card.label}</p>
-                    <div className="mt-2 text-xl font-semibold text-gray-800 dark:text-white">{card.value}</div>
+        {loading ? (
+          <div className="text-center py-12">Loading dashboard...</div>
+        ) : error ? (
+          <div className="text-center text-red-500 py-12">{error}</div>
+        ) : profile && (
+          <>
+            {/* Scheduled Reminder */}
+            {scheduledTime && (
+              <motion.div initial="hidden" animate="visible" variants={fadeUp} transition={{ duration: 0.4 }} className="mb-6">
+                <Card className="bg-yellow-50 border-l-4 border-yellow-400 p-4 dark:bg-yellow-900/10">
+                  <div className="flex items-center gap-2">
+                    <Clock3 className="w-5 h-5 text-yellow-600 dark:text-yellow-300" />
+                    <p className="text-sm text-yellow-800 dark:text-yellow-100 font-medium">
+                      You have a session scheduled today at <span className="font-bold">{scheduledTime}</span>
+                    </p>
                   </div>
-                  <div className={`${card.bg} p-3 rounded-full`}>{card.icon}</div>
-                </div>
-              </CardContent>
-            </Card>
-          ))}
-        </motion.div>
+                </Card>
+              </motion.div>
+            )}
 
-        {/* Today's Plan */}
-        {/* already included above */}
-                  <motion.div
+            {/* Welcome Section */}
+            <motion.div initial="hidden" animate="visible" variants={fadeUp} transition={{ duration: 0.5 }} className="mb-8">
+              <h1 className="text-3xl font-bold text-therapy-purple-700 dark:text-therapy-purple-200">Welcome, {profile.name}</h1>
+              <p className="text-gray-600 dark:text-gray-400 mt-1">Here's an overview of your speech therapy progress</p>
+            </motion.div>
+
+            {/* Summary Cards */}
+            <motion.div initial="hidden" animate="visible" variants={fadeUp} transition={{ delay: 0.1, duration: 0.5 }} className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+              {[{
+                label: 'Current Severity',
+                value: <SeverityBadge level={profile.currentSeverity} />, icon: <BarChart2 className="h-5 w-5 text-therapy-purple-500" />, bg: 'bg-therapy-purple-100 dark:bg-therapy-purple-500/20'
+              }, {
+                label: 'Sessions Completed',
+                value: profile.sessionsCompleted, icon: <Calendar className="h-5 w-5 text-therapy-blue-500" />, bg: 'bg-therapy-blue-50 dark:bg-therapy-blue-500/20'
+              }, {
+                label: 'Current Streak',
+                value: `${profile.streak} days`, icon: <Award className="h-5 w-5 text-green-600" />, bg: 'bg-therapy-green-100 dark:bg-green-900/20'
+              }].map((card, idx) => (
+                <Card key={idx} className="transition-shadow hover:shadow-xl dark:bg-gray-800 dark:border-gray-700">
+                  <CardContent className="p-6">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-sm text-gray-500 dark:text-gray-400">{card.label}</p>
+                        <div className="mt-2 text-xl font-semibold text-gray-800 dark:text-white">{card.value}</div>
+                      </div>
+                      <div className={`${card.bg} p-3 rounded-full`}>{card.icon}</div>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </motion.div>
+
+            {/* Today's Plan */}
+            <motion.div
   initial="hidden"
   animate="visible"
   variants={fadeUp}
@@ -303,9 +285,9 @@ const DashboardPage: React.FC = () => {
     </CardHeader>
     <CardContent className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
       <div>
-        <p className="text-sm text-gray-800 dark:text-gray-100 font-semibold mb-2">{userData.personalizedPlan.goal}</p>
+        <p className="text-sm text-gray-800 dark:text-gray-100 font-semibold mb-2">{profile.personalizedPlan?.goal}</p>
         <ul className="list-disc ml-5 space-y-1 text-sm text-gray-600 dark:text-gray-300">
-          {userData.personalizedPlan.strategies.map((item, idx) => (
+          {profile.personalizedPlan?.strategies.map((item: string, idx: number) => (
             <li key={idx}>{item}</li>
           ))}
         </ul>
@@ -355,113 +337,115 @@ const DashboardPage: React.FC = () => {
 </motion.div>
 
 
-        {/* Bonus Resource */}
-        <motion.div initial="hidden" animate="visible" variants={fadeUp} transition={{ delay: 0.3, duration: 0.5 }} className="mb-8">
-          <Card className="bg-gradient-to-br from-therapy-purple-100 to-therapy-blue-50 dark:from-therapy-purple-800 dark:to-therapy-blue-900 border-none shadow-md">
-            <CardContent className="p-6">
-              <h3 className="font-bold text-lg mb-2 flex items-center gap-2 text-gray-800 dark:text-white">
-                <Lightbulb className="w-5 h-5 text-yellow-500" /> Bonus Resource
-              </h3>
-              <p className="mb-4 text-gray-800 dark:text-gray-300">Unlock insightful tips, exercises, and tools to improve fluency.</p>
-              <div className="pt-4">
-                <Button asChild className="bg-therapy-purple-500 hover:bg-therapy-purple-600 text-white">
-                  <Link to="/bonus-resources">
-                    View Bonus Resources <ArrowRight className="ml-2 h-4 w-4" />
-                  </Link>
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-        </motion.div>
-
-        {/* Recent Activity */}
-        <motion.div initial="hidden" animate="visible" variants={fadeUp} transition={{ delay: 0.4, duration: 0.5 }} className="mb-8">
-          <Card className="dark:bg-gray-800 dark:border-gray-700">
-            <CardHeader>
-              <CardTitle className="text-lg text-gray-800 dark:text-white flex items-center gap-2">
-                <Activity className="w-5 h-5 text-blue-500" /> Recent Activity
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="grid gap-4">
-                {userData.recentExercises.map((exercise) => (
-                  <div key={exercise.id} className="flex justify-between items-center p-3 rounded-md bg-gray-100 dark:bg-gray-700">
-                    <div className="text-gray-800 dark:text-white font-medium">{exercise.name}</div>
-                    <div className="flex gap-2">
-                      <Button variant="secondary" className="text-xs px-3 py-1 bg-blue-100 text-blue-600 hover:bg-blue-200 dark:bg-blue-900 dark:text-blue-200">
-                        {exercise.duration}
-                      </Button>
-                      <Button variant="secondary" className="text-xs px-3 py-1 bg-amber-100 text-amber-600 hover:bg-amber-200 dark:bg-amber-900 dark:text-amber-200">
-                        {exercise.completedAt}
-                      </Button>
-                    </div>
+            {/* Bonus Resource */}
+            <motion.div initial="hidden" animate="visible" variants={fadeUp} transition={{ delay: 0.3, duration: 0.5 }} className="mb-8">
+              <Card className="bg-gradient-to-br from-therapy-purple-100 to-therapy-blue-50 dark:from-therapy-purple-800 dark:to-therapy-blue-900 border-none shadow-md">
+                <CardContent className="p-6">
+                  <h3 className="font-bold text-lg mb-2 flex items-center gap-2 text-gray-800 dark:text-white">
+                    <Lightbulb className="w-5 h-5 text-yellow-500" /> Bonus Resource
+                  </h3>
+                  <p className="mb-4 text-gray-800 dark:text-gray-300">Unlock insightful tips, exercises, and tools to improve fluency.</p>
+                  <div className="pt-4">
+                    <Button asChild className="bg-therapy-purple-500 hover:bg-therapy-purple-600 text-white">
+                      <Link to="/bonus-resources">
+                        View Bonus Resources <ArrowRight className="ml-2 h-4 w-4" />
+                      </Link>
+                    </Button>
                   </div>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
-        </motion.div>
+                </CardContent>
+              </Card>
+            </motion.div>
 
-        {/* Speech Analysis Biweekly Check-In */}
-        <motion.div initial="hidden" animate="visible" variants={fadeUp} transition={{ delay: 0.25, duration: 0.5 }} className="mb-8">
-          <Card className="dark:bg-gray-800 dark:border-gray-700">
-            <CardHeader>
-              <CardTitle className="text-lg text-gray-800 dark:text-white flex items-center gap-2">
-                <Mic2 className="text-red-500" /> Biweekly Speech Analysis
-              </CardTitle>
-              <CardDescription className="text-gray-500 dark:text-gray-400">
-                Track your fluency progress with a quick check-in every two weeks.
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <Button asChild className="bg-therapy-red-500 hover:bg-therapy-red-600 text-white">
-                <Link to="/record">
-                  <Mic className="w-4 h-4 mr-2" /> Start Analysis
-                </Link>
-              </Button> 
+            {/* Recent Activity */}
+            <motion.div initial="hidden" animate="visible" variants={fadeUp} transition={{ delay: 0.4, duration: 0.5 }} className="mb-8">
+              <Card className="dark:bg-gray-800 dark:border-gray-700">
+                <CardHeader>
+                  <CardTitle className="text-lg text-gray-800 dark:text-white flex items-center gap-2">
+                    <Activity className="w-5 h-5 text-blue-500" /> Recent Activity
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid gap-4">
+                    {progress.map((exercise) => (
+                      <div key={exercise.id} className="flex justify-between items-center p-3 rounded-md bg-gray-100 dark:bg-gray-700">
+                        <div className="text-gray-800 dark:text-white font-medium">{exercise.name}</div>
+                        <div className="flex gap-2">
+                          <Button variant="secondary" className="text-xs px-3 py-1 bg-blue-100 text-blue-600 hover:bg-blue-200 dark:bg-blue-900 dark:text-blue-200">
+                            {exercise.duration}
+                          </Button>
+                          <Button variant="secondary" className="text-xs px-3 py-1 bg-amber-100 text-amber-600 hover:bg-amber-200 dark:bg-amber-900 dark:text-amber-200">
+                            {exercise.completedAt}
+                          </Button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+            </motion.div>
+
+            {/* Speech Analysis Biweekly Check-In */}
+            <motion.div initial="hidden" animate="visible" variants={fadeUp} transition={{ delay: 0.25, duration: 0.5 }} className="mb-8">
+              <Card className="dark:bg-gray-800 dark:border-gray-700">
+                <CardHeader>
+                  <CardTitle className="text-lg text-gray-800 dark:text-white flex items-center gap-2">
+                    <Mic2 className="text-red-500" /> Biweekly Speech Analysis
+                  </CardTitle>
+                  <CardDescription className="text-gray-500 dark:text-gray-400">
+                    Track your fluency progress with a quick check-in every two weeks.
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <Button asChild className="bg-therapy-red-500 hover:bg-therapy-red-600 text-white">
+                    <Link to="/record">
+                      <Mic className="w-4 h-4 mr-2" /> Start Analysis
+                    </Link>
+                  </Button> 
+                    
+
+                </CardContent>
+              </Card>
+            </motion.div>
+
+
                 
 
-            </CardContent>
-          </Card>
-        </motion.div>
 
+            {/* Mood & Tip of the Day */}
+            <motion.div initial="hidden" animate="visible" variants={fadeUp} transition={{ delay: 0.5, duration: 0.5 }} className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <Card className="dark:bg-gray-800 dark:border-gray-700">
+                <CardHeader>
+                  <CardTitle className="text-lg text-gray-800 dark:text-white">Mood Tracker</CardTitle>
+                  <CardDescription className="text-gray-500 dark:text-gray-400">Select your mood to get a daily tip</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="flex gap-3">
+                    {moods.map((mood) => (
+                      <Button
+                        key={mood.value}
+                        variant={selectedMood === mood.value ? 'default' : 'outline'}
+                        onClick={() => handleMoodSelect(mood.value)}
+                      >
+                        {mood.label}
+                      </Button>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
 
-                
-
-
-        {/* Mood & Tip of the Day */}
-        <motion.div initial="hidden" animate="visible" variants={fadeUp} transition={{ delay: 0.5, duration: 0.5 }} className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <Card className="dark:bg-gray-800 dark:border-gray-700">
-            <CardHeader>
-              <CardTitle className="text-lg text-gray-800 dark:text-white">Mood Tracker</CardTitle>
-              <CardDescription className="text-gray-500 dark:text-gray-400">Select your mood to get a daily tip</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="flex gap-3">
-                {moods.map((mood) => (
-                  <Button
-                    key={mood.value}
-                    variant={selectedMood === mood.value ? 'default' : 'outline'}
-                    onClick={() => handleMoodSelect(mood.value)}
-                  >
-                    {mood.label}
-                  </Button>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card className="dark:bg-gray-800 dark:border-gray-700">
-            <CardHeader>
-              <CardTitle className="text-lg text-gray-800 dark:text-white flex items-center gap-2">
-                <Sparkles className="text-yellow-500" /> Tip of the Day
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-gray-700 dark:text-gray-300">{currentTip}</p>
-            </CardContent>
-          </Card>
-        </motion.div>
+              <Card className="dark:bg-gray-800 dark:border-gray-700">
+                <CardHeader>
+                  <CardTitle className="text-lg text-gray-800 dark:text-white flex items-center gap-2">
+                    <Sparkles className="text-yellow-500" /> Tip of the Day
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-gray-700 dark:text-gray-300">{currentTip}</p>
+                </CardContent>
+              </Card>
+            </motion.div>
+          </>
+        )}
       </div>
     </div>
   );

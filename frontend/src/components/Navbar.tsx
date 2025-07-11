@@ -1,12 +1,19 @@
 
 import React from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Mic, User, Menu, X } from 'lucide-react';
 import ThemeToggle from './ThemeToggle';
+import { authAPI } from '@/services/api';
 
 const Navbar = () => {
   const [isMenuOpen, setIsMenuOpen] = React.useState(false);
+  const navigate = useNavigate();
+
+  const handleLogout = () => {
+    authAPI.logout();
+    navigate('/login');
+  };
 
   return (
     <nav className="bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 sticky top-0 z-50">
@@ -37,6 +44,7 @@ const Navbar = () => {
               <Button asChild variant="default" className="bg-therapy-purple-500 hover:bg-therapy-purple-700">
                 <Link to="/exercises">Start Session</Link>
               </Button>
+              <Button variant="outline" onClick={handleLogout} className="ml-2">Logout</Button>
             </div>
           </div>
           
@@ -86,6 +94,13 @@ const Navbar = () => {
                 onClick={() => setIsMenuOpen(false)}
               >
                 <Link to="/record">Start Session</Link>
+              </Button>
+              <Button 
+                variant="outline"
+                className="w-full mt-2"
+                onClick={() => { setIsMenuOpen(false); handleLogout(); }}
+              >
+                Logout
               </Button>
             </div>
           </div>

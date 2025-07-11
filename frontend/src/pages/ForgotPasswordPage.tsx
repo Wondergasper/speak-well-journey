@@ -7,28 +7,33 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/components/ui/use-toast';
+import { authAPI } from '@/services/api';
 
 const ForgotPasswordPage: React.FC = () => {
   const [isLoading, setIsLoading] = React.useState(false);
   const { toast } = useToast();
+  const [email, setEmail] = React.useState('');
 
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setIsLoading(true);
     
     try {
-      // Simulate sending reset email
-      await new Promise(resolve => setTimeout(resolve, 1500));
+      await authAPI.forgotPassword(email);
       
       toast({
         title: "Reset email sent!",
         description: "Check your inbox for password reset instructions.",
       });
     } catch (error) {
+      let message = 'Failed to send reset email. Please try again.';
+      if (error && typeof error === 'object' && 'message' in error) {
+        message = (error as any).message;
+      }
       toast({
         variant: "destructive",
         title: "Error",
-        description: "Failed to send reset email. Please try again.",
+        description: message,
       });
     } finally {
       setIsLoading(false);
@@ -72,6 +77,8 @@ const ForgotPasswordPage: React.FC = () => {
                     placeholder="you@example.com" 
                     className="pl-10" 
                     required
+                    value={email}
+                    onChange={e => setEmail(e.target.value)}
                   />
                 </div>
               </div>
