@@ -29,13 +29,13 @@ const StepBasicInfo = ({ onNext, updateData, data }) => {
         {/* Input Fields */}
         <div className="space-y-6">
           <div className="space-y-2">
-            <Label>Full Name</Label>
+            <Label>Nickname</Label>
             <div className="relative">
               <User className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
               <Input
                 value={name}
                 onChange={(e) => setName(e.target.value)}
-                placeholder="Jane Doe"
+                placeholder="Janie"
                 className="pl-10"
                 required
               />
