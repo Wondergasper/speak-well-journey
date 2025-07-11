@@ -4,8 +4,8 @@ from transformers import Wav2Vec2Processor, Wav2Vec2ForSequenceClassification
 from .predict_single_audio import predict_single_audio
 import numpy as np
 
-# Model configuration
-MODEL_PATH = os.path.join(os.path.dirname(__file__), 'stuttering_model')
+# Model configuration - Updated path to match actual directory structure
+MODEL_PATH = os.path.join(os.path.dirname(__file__), 'stuttering_model', 'Stuttering_model')
 
 # Global variables for model and processor
 processor = None
@@ -37,6 +37,48 @@ def load_model():
         model = None
         return False
 
+def predict_stuttering(file_path):
+    """
+    Predict stuttering in audio file using the loaded model.
+    This is the function called by analyze_audio.
+    """
+    global processor, model
+    
+    if processor is None or model is None:
+        print("Model not loaded, using dummy prediction")
+        return _dummy_prediction()
+    
+    try:
+        # Use the predict_single_audio function
+        prediction, probability = predict_single_audio(file_path, model, processor)
+        
+        # Generate detailed analysis
+        details = _generate_details(prediction, probability)
+        
+        return {
+            'prediction': prediction,
+            'stutter_probability': probability,
+            'confidence': probability if prediction == 1 else (1 - probability),
+            'stutter_count': details['stutter_count'],
+            'word_count': details['word_count'],
+            'details': details
+        }
+        
+    except Exception as e:
+        print(f"Error in predict_stuttering: {str(e)}")
+        return _dummy_prediction()
+
+def _dummy_prediction():
+    """Fallback dummy prediction when model fails"""
+    return {
+        'prediction': np.random.choice([0, 1]),
+        'stutter_probability': np.random.uniform(0, 1),
+        'confidence': np.random.uniform(0.5, 0.9),
+        'stutter_count': np.random.randint(0, 10),
+        'word_count': np.random.randint(20, 50),
+        'details': _generate_details(np.random.choice([0, 1]), np.random.uniform(0, 1))
+    }
+
 def analyze_audio(file_path):
     """
     Analyze audio file for stuttering patterns.
@@ -44,9 +86,6 @@ def analyze_audio(file_path):
     Replace with actual ML model inference in production.
     """
     try:
-        # Import the prediction function
-        from .predict_single_audio import predict_stuttering
-
         # Get prediction from ML model
         result = predict_stuttering(file_path)
 
@@ -152,6 +191,19 @@ def _get_recommended_exercises(severity):
         ])
 
     return base_exercises
+
+def _determine_severity(probability):
+    """Determine severity based on stuttering probability"""
+    if probability < 0.3:
+        return 'none'
+    elif probability < 0.7:
+        return 'mild'
+    else:
+        return 'severe'
+
+def _suggest_exercises(severity):
+    """Suggest exercises based on severity"""
+    return _get_recommended_exercises(severity)
 
 def _dummy_analysis():
     """Fallback dummy analysis when model is not available"""
