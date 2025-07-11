@@ -2,7 +2,7 @@
 import React from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
-import { Mic, User, Menu, X } from 'lucide-react';
+import { Mic, User, Menu, X, Bell } from 'lucide-react';
 import ThemeToggle from './ThemeToggle';
 import { authAPI } from '@/services/api';
 
@@ -39,6 +39,11 @@ const Navbar = () => {
               <Button asChild variant="ghost" size="icon" className="rounded-full">
                 <Link to="/profile">
                   <User className="h-5 w-5" />
+                </Link>
+              </Button>
+              <Button asChild variant="ghost" size="icon" className="rounded-full">
+                <Link to="/notifications">
+                  <Bell className="h-5 w-5" />
                 </Link>
               </Button>
               <Button asChild variant="default" className="bg-therapy-purple-500 hover:bg-therapy-purple-700">
@@ -87,6 +92,13 @@ const Navbar = () => {
                 onClick={() => setIsMenuOpen(false)}
               >
                 Profile
+              </Link>
+              <Link 
+                to="/notifications" 
+                className="px-3 py-2 rounded-md text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800"
+                onClick={() => setIsMenuOpen(false)}
+              >
+                <Bell className="h-5 w-5 inline mr-2" /> Notifications
               </Link>
               <Button 
                 asChild 
