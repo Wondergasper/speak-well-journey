@@ -1,7 +1,7 @@
 from flask import Blueprint, request, jsonify
 from models import User
-from app import db
-from flask_jwt_extended import create_access_token, decode_token
+from db import db
+from flask_jwt_extended import create_access_token, decode_token, jwt_required, get_jwt_identity, create_refresh_token
 from marshmallow import Schema, fields, ValidationError
 from datetime import timedelta
 
@@ -45,8 +45,9 @@ def login():
         return jsonify({'error': err.messages}), 400
     user = User.query.filter_by(email=data['email']).first()
     if user and user.check_password(data['password']):
-        access_token = create_access_token(identity=user.id)
-        return jsonify({'token': access_token, 'user': {'id': user.id, 'name': user.name, 'email': user.email}})
+        access_token = create_access_token(identity=str(user.id))
+        refresh_token = create_refresh_token(identity=str(user.id))
+        return jsonify({'token': access_token, 'refresh_token': refresh_token, 'user': {'id': user.id, 'name': user.name, 'email': user.email}})
     return jsonify({'error': 'Invalid credentials'}), 401
 
 @auth_bp.route('/forgot-password', methods=['POST'])
@@ -59,8 +60,7 @@ def forgot_password():
     if not user:
         return jsonify({'error': 'Email not found'}), 404
     # Generate a short-lived JWT as a reset token
-    reset_token = create_access_token(identity=user.id, expires_delta=timedelta(minutes=15), additional_claims={'pwreset': True})
-    # In production, send this token via email. For demo, return it in response.
+    reset_token = create_access_token(identity=str(user.id), expires_delta=timedelta(minutes=15), additional_claims={'pwreset': True})
     return jsonify({'message': 'Password reset token generated', 'reset_token': reset_token})
 
 @auth_bp.route('/reset-password', methods=['POST'])
@@ -81,4 +81,11 @@ def reset_password():
         return jsonify({'error': 'User not found'}), 404
     user.set_password(data['new_password'])
     db.session.commit()
-    return jsonify({'message': 'Password reset successful'}) 
+    return jsonify({'message': 'Password reset successful'})
+
+@auth_bp.route('/refresh', methods=['POST'])
+@jwt_required(refresh=True)
+def refresh():
+    identity = get_jwt_identity()
+    access_token = create_access_token(identity=identity)
+    return jsonify({'token': access_token}) 
