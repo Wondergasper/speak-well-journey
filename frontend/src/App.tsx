@@ -22,6 +22,7 @@ import BonusResourcePage from "./pages/BonusResources";
 import LearnMorePage from "./pages/LearnMorePage";
 import SessionPage from "./pages/SessionPage";
 import SessionExercisePage from "./pages/SessionExercisePage";
+import NotificationsPage from "./pages/NotificationsPage";
 
 const queryClient = new QueryClient();
 
@@ -50,6 +51,7 @@ const App = () => (
             <Route path="/learn-more" element={<LearnMorePage />} />
             <Route path="/session" element={<SessionPage/>} />
             <Route path="/session-exercise" element={<SessionExercisePage/>} />
+            <Route path="/notifications" element={<NotificationsPage />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </AuthProvider>
