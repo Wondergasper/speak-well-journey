@@ -426,7 +426,7 @@ def analyze_exercise_effectiveness(user_id):
         improvement = calculate_improvement_rate(stats['scores'])
         
         exercise = Exercise.query.get(exercise_id)
-        exercise_name = exercise.name if exercise else f"Exercise {exercise_id}"
+        exercise_name = exercise.title if exercise else f"Exercise {exercise_id}"
         
         effectiveness.append({
             'exercise_id': exercise_id,

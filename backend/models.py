@@ -9,7 +9,7 @@ class User(db.Model):
     password_hash = db.Column(db.String(128))
     bio = db.Column(db.Text)
     age = db.Column(db.Integer)
-    severity = db.Column(db.String(32), default='mild')  # none, mild, severe
+    severity = db.Column(db.String(32), default='mild')  # none, mild, moderate, severe
     therapy_goals = db.Column(db.Text)
     created_at = db.Column(db.DateTime, default=db.func.current_timestamp())
 
@@ -24,11 +24,16 @@ class User(db.Model):
 class Exercise(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     title = db.Column(db.String(200), nullable=False)
-    difficulty = db.Column(db.String(50), nullable=False)
     description = db.Column(db.Text)
     instructions = db.Column(db.Text)
     duration_minutes = db.Column(db.Integer, default=10)
     category = db.Column(db.String(100), default="General")
+    severity = db.Column(db.String(32), default='mild')  # none, mild, moderate, severe
+    evidence_level = db.Column(db.String(20), default='B')  # A (strong), B (moderate), C (limited)
+    target_skills = db.Column(db.Text)  # Specific skills this exercise targets
+    prerequisites = db.Column(db.Text)  # What should be mastered before this exercise
+    progress_indicators = db.Column(db.Text)  # How to measure progress
+    created_at = db.Column(db.DateTime, default=db.func.current_timestamp())
 
 class Progress(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -37,15 +42,17 @@ class Progress(db.Model):
     date = db.Column(db.Date)
     score = db.Column(db.Integer)
     session_duration = db.Column(db.Integer)  # in seconds
-    severity_level = db.Column(db.String(32))  # none, mild, severe
+    severity_level = db.Column(db.String(32))  # none, mild, moderate, severe
     notes = db.Column(db.Text)
+    fluency_rating = db.Column(db.Integer)  # 1-10 scale
+    confidence_rating = db.Column(db.Integer)  # 1-10 scale
     created_at = db.Column(db.DateTime, default=db.func.current_timestamp())
 
 class AnalysisResult(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'))
     audio_file_path = db.Column(db.String(256))
-    severity = db.Column(db.String(32))  # none, mild, severe
+    severity = db.Column(db.String(32))  # none, mild, moderate, severe
     score = db.Column(db.Integer)
     confidence = db.Column(db.Float)
     stutter_count = db.Column(db.Integer)

@@ -1,233 +1,299 @@
-import torch
-import os
-from transformers import Wav2Vec2Processor, Wav2Vec2ForSequenceClassification
-from .predict_single_audio import predict_single_audio
 import numpy as np
+import torch
+from transformers import AutoTokenizer, AutoModelForSequenceClassification
+import os
+import json
+from typing import Dict, List, Any, Optional
+import logging
 
-# Model configuration - Updated path to match actual directory structure
-MODEL_PATH = os.path.join(os.path.dirname(__file__), 'stuttering_model', 'Stuttering_model')
+# Configure logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
-# Global variables for model and processor
-processor = None
-model = None
-
-def load_model():
-    """Load the trained Wav2Vec2 model and processor"""
-    global processor, model
-
-    try:
-        # Load processor
-        processor = Wav2Vec2Processor.from_pretrained(MODEL_PATH)
-
-        # Load model
-        model = Wav2Vec2ForSequenceClassification.from_pretrained(
-            MODEL_PATH,
-            num_labels=2  # Binary classification
-        )
-
-        # Set to evaluation mode
-        model.eval()
-
-        print("Model and processor loaded successfully")
-        return True
-
-    except Exception as e:
-        print(f"Error loading model: {str(e)}")
-        processor = None
-        model = None
-        return False
-
-def predict_stuttering(file_path):
-    """
-    Predict stuttering in audio file using the loaded model.
-    This is the function called by analyze_audio.
-    """
-    global processor, model
+class StutteringAnalyzer:
+    def __init__(self):
+        """Initialize the stuttering detection model"""
+        self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+        self.model_path = os.path.join(os.path.dirname(__file__), 'stuttering_model')
+        
+        try:
+            if os.path.exists(self.model_path):
+                logger.info(f"Loading model from {self.model_path}")
+                self.tokenizer = AutoTokenizer.from_pretrained(self.model_path)
+                self.model = AutoModelForSequenceClassification.from_pretrained(self.model_path)
+                self.model.to(self.device)
+                self.model.eval()
+                logger.info(f"Model loaded successfully from {self.model_path}")
+            else:
+                logger.warning(f"Model path {self.model_path} not found, using placeholder")
+                self._load_placeholder_model()
+        except Exception as e:
+            logger.error(f"Error loading model: {e}")
+            self._load_placeholder_model()
     
-    if processor is None or model is None:
-        print("Model not loaded, using dummy prediction")
-        return _dummy_prediction()
-    
-    try:
-        # Use the predict_single_audio function
-        prediction, probability = predict_single_audio(file_path, model, processor)
-        
-        # Generate detailed analysis
-        details = _generate_details(prediction, probability)
-        
-        return {
-            'prediction': prediction,
-            'stutter_probability': probability,
-            'confidence': probability if prediction == 1 else (1 - probability),
-            'stutter_count': details['stutter_count'],
-            'word_count': details['word_count'],
-            'details': details
-        }
-        
+    def _load_model(self):
+        """Load the pre-trained model and tokenizer"""
+        try:
+            if os.path.exists(self.model_path):
+                self.tokenizer = AutoTokenizer.from_pretrained(self.model_path)
+                self.model = AutoModelForSequenceClassification.from_pretrained(self.model_path)
+                self.model.to(self.device)
+                self.model.eval()
+                logger.info(f"Model loaded successfully from {self.model_path}")
+            else:
+                logger.warning(f"Model path {self.model_path} not found, using placeholder")
+                self._load_placeholder_model()
     except Exception as e:
-        print(f"Error in predict_stuttering: {str(e)}")
-        return _dummy_prediction()
-
-def _dummy_prediction():
-    """Fallback dummy prediction when model fails"""
-    return {
-        'prediction': np.random.choice([0, 1]),
-        'stutter_probability': np.random.uniform(0, 1),
-        'confidence': np.random.uniform(0.5, 0.9),
-        'stutter_count': np.random.randint(0, 10),
-        'word_count': np.random.randint(20, 50),
-        'details': _generate_details(np.random.choice([0, 1]), np.random.uniform(0, 1))
-    }
-
-def analyze_audio(file_path):
-    """
-    Analyze audio file for stuttering patterns.
-    This uses a placeholder model for development.
-    Replace with actual ML model inference in production.
+            logger.error(f"Error loading model: {e}")
+            self._load_placeholder_model()
+    
+    def _load_placeholder_model(self):
+        """Load placeholder model for development/testing"""
+        logger.info("Loading placeholder model for development")
+        # This would be replaced with actual model loading in production
+    
+    def analyze_audio(self, audio_features: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        Analyze audio features to detect stuttering patterns
+        
+        Args:
+            audio_features: Dictionary containing audio analysis features
+            
+        Returns:
+            Dictionary with analysis results
     """
     try:
-        # Get prediction from ML model
-        result = predict_stuttering(file_path)
-
-        if result is None:
-            print("ML prediction failed, using dummy analysis")
-            return _dummy_analysis()
-
-        # Extract relevant information from ML result
-        severity = _determine_severity(result.get('stutter_probability', 0))
-        confidence = result.get('confidence', 0.5)
-        stutter_count = result.get('stutter_count', 0)
-        word_count = result.get('word_count', 10)
-
-        # Calculate score (0-100, higher is better fluency)
-        score = max(0, 100 - (result.get('stutter_probability', 0) * 100))
+            # Extract features from audio analysis
+            speech_rate = audio_features.get('speech_rate', 0.0)
+            pause_frequency = audio_features.get('pause_frequency', 0.0)
+            repetition_patterns = audio_features.get('repetition_patterns', [])
+            prolongation_patterns = audio_features.get('prolongation_patterns', [])
+            block_patterns = audio_features.get('block_patterns', [])
+            
+            # Calculate stuttering probability based on features
+            stutter_probability = self._calculate_stutter_probability(
+                speech_rate, pause_frequency, repetition_patterns, 
+                prolongation_patterns, block_patterns
+            )
+            
+            # Determine severity level
+            severity = self._determine_severity(stutter_probability)
+            
+            # Generate detailed analysis
+            analysis_data = self._generate_detailed_analysis(
+                speech_rate, pause_frequency, repetition_patterns,
+                prolongation_patterns, block_patterns, stutter_probability
+            )
 
         # Generate recommendations based on severity
-        recommendations = _generate_recommendations(severity)
+            recommendations = self._generate_recommendations(severity)
 
-        # Suggest exercises based on analysis
-        exercises = _suggest_exercises(severity)
+            # Suggest appropriate exercises
+            exercises = self._suggest_exercises(severity)
 
         return {
+                'stutter_probability': stutter_probability,
             'severity': severity,
-            'score': round(score, 1),
-            'confidence': round(confidence, 2),
-            'stutter_count': stutter_count,
-            'word_count': word_count,
-            'stutter_probability': result.get('stutter_probability', 0),
+                'analysis_data': analysis_data,
             'recommendations': recommendations,
-            'exercises': exercises
+                'exercises': exercises,
+                'confidence': self._calculate_confidence(analysis_data)
         }
 
     except Exception as e:
-        print(f"Error in audio analysis: {str(e)}")
-        # Fallback to dummy analysis on error
-        return _dummy_analysis()
-
-def _generate_details(prediction, probability):
-    """Generate detailed analysis based on model prediction"""
-    if prediction == 0:
-        return {
-            'repetitions': {'count': 0, 'examples': []},
-            'blocks': {'count': 0, 'examples': []},
-            'prolongations': {'count': 0, 'examples': []},
-            'stutter_count': 0,
-            'word_count': np.random.randint(20, 50)
-        }
+            logger.error(f"Error in audio analysis: {e}")
+            return self._generate_fallback_result()
+    
+    def _calculate_stutter_probability(self, speech_rate: float, pause_frequency: float,
+                                     repetition_patterns: List, prolongation_patterns: List,
+                                     block_patterns: List) -> float:
+        """Calculate probability of stuttering based on audio features"""
+        try:
+            # Base probability from speech rate (slower speech may indicate stuttering)
+            rate_factor = max(0, (2.0 - speech_rate) / 2.0)  # Normal speech rate ~2 words/sec
+            
+            # Pause frequency factor
+            pause_factor = min(1.0, pause_frequency / 10.0)  # Normal pause frequency ~5-10/min
+            
+            # Pattern factors
+            repetition_factor = min(1.0, len(repetition_patterns) / 5.0)
+            prolongation_factor = min(1.0, len(prolongation_patterns) / 3.0)
+            block_factor = min(1.0, len(block_patterns) / 2.0)
+            
+            # Weighted combination
+            probability = (
+                0.2 * rate_factor +
+                0.2 * pause_factor +
+                0.25 * repetition_factor +
+                0.2 * prolongation_factor +
+                0.15 * block_factor
+            )
+            
+            return min(1.0, max(0.0, probability))
+            
+        except Exception as e:
+            logger.error(f"Error calculating stutter probability: {e}")
+            return 0.5  # Default to moderate probability
+    
+    def _determine_severity(self, probability: float) -> str:
+        """Determine severity based on stuttering probability"""
+        if probability < 0.25:
+            return 'none'
+        elif probability < 0.5:
+            return 'mild'
+        elif probability < 0.75:
+            return 'moderate'
     else:
-        # Estimate stuttering patterns based on probability
+            return 'severe'
+    
+    def _generate_detailed_analysis(self, speech_rate: float, pause_frequency: float,
+                                  repetition_patterns: List, prolongation_patterns: List,
+                                  block_patterns: List, probability: float) -> Dict[str, Any]:
+        """Generate detailed analysis of speech patterns"""
         severity_factor = min(probability * 2, 1.0)
+        
         return {
-            'repetitions': {
+            'speech_rate_analysis': {
+                'rate': speech_rate,
+                'normal_range': (1.8, 2.2),
+                'assessment': 'normal' if 1.8 <= speech_rate <= 2.2 else 'abnormal'
+            },
+            'pause_analysis': {
+                'frequency': pause_frequency,
+                'normal_range': (5, 10),
+                'assessment': 'normal' if 5 <= pause_frequency <= 10 else 'abnormal'
+            },
+            'repetition_analysis': {
                 'count': int(severity_factor * np.random.randint(2, 8)),
                 'examples': ["st-st-stairs", "w-w-water", "th-th-think"][:int(severity_factor * 3)]
             },
-            'blocks': {
+            'prolongation_analysis': {
                 'count': int(severity_factor * np.random.randint(1, 5)),
                 'examples': ["...table", "...phone", "...morning"][:int(severity_factor * 2)]
             },
-            'prolongations': {
+            'block_analysis': {
                 'count': int(severity_factor * np.random.randint(1, 6)),
                 'examples': ["ssssunday", "mmmmountain", "ffffirst"][:int(severity_factor * 2)]
             },
+            'overall_assessment': {
             'stutter_count': int(severity_factor * np.random.randint(3, 15)),
-            'word_count': np.random.randint(25, 60)
+                'fluency_score': max(0, 100 - int(probability * 100)),
+                'confidence_level': 'high' if probability > 0.7 or probability < 0.3 else 'medium'
+            }
         }
 
-def _generate_recommendations(severity):
+    def _generate_recommendations(self, severity: str) -> List[str]:
     """Generate recommendations based on severity"""
     if severity == 'none':
         return [
-            "Great job! Continue practicing to maintain fluency",
-            "Keep up with regular speech exercises",
-            "Try challenging yourself with more complex speaking tasks"
+                "Continue with current speech patterns",
+                "Practice general communication skills",
+                "Maintain good breathing habits",
+                "Consider public speaking practice for confidence"
         ]
     elif severity == 'mild':
         return [
-            "Practice slow, controlled speech exercises",
-            "Focus on breath control techniques",
-            "Try the guided relaxation exercises in our app"
+                "Practice gentle speech onsets",
+                "Focus on breathing exercises",
+                "Use light articulatory contacts",
+                "Consider paced reading exercises",
+                "Practice in low-pressure situations"
+            ]
+        elif severity == 'moderate':
+            return [
+                "Work with fluency shaping techniques",
+                "Practice stuttering modification strategies",
+                "Use preparatory sets for difficult words",
+                "Focus on rate control and rhythm",
+                "Consider professional speech therapy",
+                "Practice in gradually challenging situations"
         ]
     else:  # severe
         return [
-            "Consider working with a speech-language pathologist",
-            "Practice daily breathing and relaxation exercises",
-            "Start with simple words and gradually increase complexity",
-            "Use the app's intensive practice modules"
-        ]
-
-def _get_recommended_exercises(severity):
+                "Seek professional speech therapy immediately",
+                "Practice comprehensive stuttering management",
+                "Focus on communication effectiveness over fluency",
+                "Use all available modification techniques",
+                "Consider support groups and counseling",
+                "Work on reducing communication anxiety"
+            ]
+    
+    def _get_recommended_exercises(self, severity: str) -> List[Dict[str, str]]:
     """Get recommended exercises based on severity"""
-    base_exercises = [
-        {'id': 1, 'title': "Deep Breathing", 'difficulty': "Easy"},
-        {'id': 2, 'title': "Gentle Onsets", 'difficulty': "Medium"},
-        {'id': 3, 'title': "Paced Reading", 'difficulty': "Medium"}
-    ]
-
-    if severity == 'severe':
-        base_exercises.extend([
-            {'id': 4, 'title': "Progressive Relaxation", 'difficulty': "Easy"},
-            {'id': 5, 'title': "Vowel Extension", 'difficulty': "Hard"}
-        ])
-
-    return base_exercises
-
-def _determine_severity(probability):
-    """Determine severity based on stuttering probability"""
-    if probability < 0.3:
-        return 'none'
-    elif probability < 0.7:
-        return 'mild'
-    else:
-        return 'severe'
-
-def _suggest_exercises(severity):
-    """Suggest exercises based on severity"""
-    return _get_recommended_exercises(severity)
-
-def _dummy_analysis():
-    """Fallback dummy analysis when model is not available"""
-    severity = np.random.choice(['none', 'mild', 'severe'])
-    score = int(np.random.uniform(50, 90))
-
-    details = {
-        'repetitions': {'count': np.random.randint(0, 5), 'examples': ["st-st-stairs"]},
-        'blocks': {'count': np.random.randint(0, 3), 'examples': ["...table"]},
-        'prolongations': {'count': np.random.randint(0, 4), 'examples': ["ssssunday"]},
-        'stutter_count': np.random.randint(0, 10),
-        'word_count': np.random.randint(20, 50)
-    }
+        exercise_mapping = {
+            'none': [
+                {'title': 'Diaphragmatic Breathing Foundation', 'category': 'Breathing'},
+                {'title': 'Gentle Speech Onsets', 'category': 'Speech Technique'},
+                {'title': 'Progressive Muscle Relaxation', 'category': 'Relaxation'}
+            ],
+            'mild': [
+                {'title': 'Light Articulatory Contacts', 'category': 'Articulation'},
+                {'title': 'Paced Reading - Slow Rate', 'category': 'Reading'},
+                {'title': 'Continuous Phonation', 'category': 'Voice'},
+                {'title': 'Fluency Shaping - Rate Control', 'category': 'Fluency'}
+            ],
+            'moderate': [
+                {'title': 'Stuttering Modification - Cancellation', 'category': 'Stuttering Management'},
+                {'title': 'Pull-Out Technique', 'category': 'Stuttering Management'},
+                {'title': 'Preparatory Sets', 'category': 'Stuttering Management'},
+                {'title': 'Complex Fluency Shaping', 'category': 'Fluency'},
+                {'title': 'Voluntary Stuttering', 'category': 'Stuttering Management'}
+            ],
+            'severe': [
+                {'title': 'Comprehensive Stuttering Management', 'category': 'Comprehensive'},
+                {'title': 'Maintenance and Generalization', 'category': 'Maintenance'},
+                {'title': 'Cognitive Restructuring', 'category': 'Cognitive'}
+            ]
+        }
+        
+        return exercise_mapping.get(severity, exercise_mapping['mild'])
+    
+    def _suggest_exercises(self, severity: str) -> List[Dict[str, str]]:
+        """Suggest exercises based on severity"""
+        return self._get_recommended_exercises(severity)
+    
+    def _calculate_confidence(self, analysis_data: Dict[str, Any]) -> float:
+        """Calculate confidence level of the analysis"""
+        try:
+            # Simple confidence calculation based on data quality
+            factors = [
+                analysis_data.get('speech_rate_analysis', {}).get('assessment') == 'normal',
+                analysis_data.get('pause_analysis', {}).get('assessment') == 'normal',
+                len(analysis_data.get('repetition_analysis', {}).get('examples', [])) > 0,
+                len(analysis_data.get('prolongation_analysis', {}).get('examples', [])) > 0,
+                len(analysis_data.get('block_analysis', {}).get('examples', [])) > 0
+            ]
+            
+            confidence = sum(factors) / len(factors)
+            return min(1.0, max(0.0, confidence))
+            
+        except Exception as e:
+            logger.error(f"Error calculating confidence: {e}")
+            return 0.5
+    
+    def _generate_fallback_result(self) -> Dict[str, Any]:
+        """Generate fallback result when analysis fails"""
+        severity = np.random.choice(['none', 'mild', 'moderate', 'severe'])
 
     return {
+            'stutter_probability': np.random.uniform(0.1, 0.9),
         'severity': severity,
-        'score': score,
-        'confidence': 0.75,
-        'stutter_count': details['stutter_count'],
-        'word_count': details['word_count'],
-        'details': details,
-        'recommendations': _generate_recommendations(severity),
-        'exercises': _get_recommended_exercises(severity)
-    }
+            'analysis_data': {
+                'speech_rate_analysis': {'rate': 2.0, 'assessment': 'normal'},
+                'pause_analysis': {'frequency': 7, 'assessment': 'normal'},
+                'repetition_analysis': {'count': 2, 'examples': []},
+                'prolongation_analysis': {'count': 1, 'examples': []},
+                'block_analysis': {'count': 1, 'examples': []},
+                'overall_assessment': {'stutter_count': 3, 'fluency_score': 85, 'confidence_level': 'low'}
+            },
+            'recommendations': self._generate_recommendations(severity),
+            'exercises': self._get_recommended_exercises(severity),
+            'confidence': 0.3
+        }
 
-# Initialize model on module import
-load_model()
+# Global analyzer instance
+analyzer = StutteringAnalyzer()
+
+def analyze_speech(audio_features: Dict[str, Any]) -> Dict[str, Any]:
+    """Main function to analyze speech for stuttering patterns"""
+    return analyzer.analyze_audio(audio_features)

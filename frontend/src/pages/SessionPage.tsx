@@ -1,151 +1,144 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { exercisesAPI, profileAPI } from '@/services/api';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft } from 'lucide-react';
-import { useToast } from '@/components/ui/use-toast';
+import { ArrowLeft, Play, Clock, Target, Award } from 'lucide-react';
+import { Link, useNavigate } from 'react-router-dom';
+import { exercisesBySeverity, Exercise } from '@/data/exercises';
 
-const SessionPage = () => {
+const SessionPage: React.FC = () => {
+  const [exercises, setExercises] = useState<Exercise[]>([]);
+  const [userSeverity, setUserSeverity] = useState<string>('mild');
   const navigate = useNavigate();
-  const { toast } = useToast();
-  const [selectedExercises, setSelectedExercises] = useState([]);
-  const [completed, setCompleted] = useState({});
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    const fetchExercises = async () => {
-      try {
-        // Get user profile to determine severity
-        const profile = await profileAPI.getProfile();
-        const severity = profile.severity || 'mild';
-        
-        // Fetch exercises filtered by severity
-        const allExercises = await exercisesAPI.getAll(severity);
-        
-        // Randomly select 2 exercises for the session
-        const shuffled = [...allExercises].sort(() => 0.5 - Math.random());
-        const selected = shuffled.slice(0, 2);
-        setSelectedExercises(selected);
-        
-        // Get completion status from localStorage (temporary until backend supports it)
-        const completedByUser = JSON.parse(localStorage.getItem('completedExercises') || '{}');
-        setCompleted(completedByUser[profile.id] || {});
-        
-      } catch (err) {
-        setError('Failed to load exercises. Please try again.');
-        toast({
-          variant: 'destructive',
-          title: 'Error',
-          description: 'Failed to load exercises. Please try again.',
-        });
-      } finally {
-        setLoading(false);
-      }
-    };
+    // Get user severity from localStorage or default to mild
+    const storedSeverity = localStorage.getItem('userSeverity') || 'mild';
+    setUserSeverity(storedSeverity);
+    
+    // Get exercises for user's severity level
+    const severityExercises = exercisesBySeverity[storedSeverity] || [];
+    setExercises(severityExercises);
+  }, []);
 
-    fetchExercises();
-  }, [toast]);
-
-  const handleStartExercise = (exercise) => {
-    navigate('/session-exercise', { state: { exercise } });
-  };
-
-  const handleFinishSession = async () => {
-    try {
-      // Get user profile
-      const profile = await profileAPI.getProfile();
-      
-      // Record session completion in backend (you may want to add a sessions API)
-      // For now, we'll just navigate to dashboard
-      
-      // Update local storage for session tracking
-      const today = new Date().toISOString().split('T')[0];
-      const lastSessionDate = profile.lastSession ? new Date(profile.lastSession) : null;
-      const todayDate = new Date();
-      const difference = lastSessionDate ? Math.floor((todayDate.getTime() - lastSessionDate.getTime()) / (1000 * 60 * 60 * 24)) : 0;
-      const newStreak = lastSessionDate && difference === 1 ? (profile.streak || 0) + 1 : 1;
-
-      // Clear completed exercises for this session
-      const completedByUser = JSON.parse(localStorage.getItem('completedExercises') || '{}');
-      delete completedByUser[profile.id];
-      localStorage.setItem('completedExercises', JSON.stringify(completedByUser));
-
-      toast({
-        title: 'Session completed!',
-        description: 'Great job! Your progress has been recorded.',
-      });
-
-      navigate('/dashboard');
-    } catch (err) {
-      toast({
-        variant: 'destructive',
-        title: 'Error',
-        description: 'Failed to complete session. Please try again.',
-      });
+  const getSeverityColor = (severity: string) => {
+    switch (severity) {
+      case 'none':
+        return 'bg-green-100 text-green-800 hover:bg-green-200';
+      case 'mild':
+        return 'bg-blue-100 text-blue-800 hover:bg-blue-200';
+      case 'moderate':
+        return 'bg-yellow-100 text-yellow-800 hover:bg-yellow-200';
+      case 'severe':
+        return 'bg-red-100 text-red-800 hover:bg-red-200';
+      default:
+        return 'bg-gray-100 text-gray-800 hover:bg-gray-200';
     }
   };
 
-  if (loading) {
-    return (
-      <div className="min-h-screen p-8 bg-therapy-purple-50 flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-therapy-purple-500 mx-auto mb-4"></div>
-          <p>Loading your personalized session...</p>
-        </div>
-      </div>
-    );
-  }
+  const getEvidenceLevelColor = (level: string) => {
+    switch (level) {
+      case 'A':
+        return 'bg-emerald-100 text-emerald-800 hover:bg-emerald-200';
+      case 'B':
+        return 'bg-blue-100 text-blue-800 hover:bg-blue-200';
+      case 'C':
+        return 'bg-orange-100 text-orange-800 hover:bg-orange-200';
+      default:
+        return 'bg-gray-100 text-gray-800 hover:bg-gray-200';
+    }
+  };
 
-  if (error) {
-    return (
-      <div className="min-h-screen p-8 bg-therapy-purple-50 flex items-center justify-center">
-        <div className="text-center">
-          <p className="text-red-600 mb-4">{error}</p>
-          <Button onClick={() => window.location.reload()}>Try Again</Button>
-        </div>
-      </div>
-    );
-  }
-
-  const allCompleted = selectedExercises.every((ex) => completed[ex.id]);
+  const handleExerciseClick = (exercise: Exercise) => {
+    navigate(`/session/exercise/${exercise.id}`, { state: { exercise } });
+  };
 
   return (
-    <div className="min-h-screen p-8 bg-therapy-purple-50">
-      {/* Back to Dashboard */}
-      <div className="mb-4">
-        <Button
-          variant="outline"
-          onClick={() => navigate('/dashboard')}
-          className="flex items-center gap-2 text-therapy-purple-600 border-therapy-purple-300"
+    <div className="container mx-auto px-4 py-8">
+      <div className="mb-8">
+        <Link 
+          to="/dashboard" 
+          className="text-gray-500 hover:text-blue-600 flex items-center mb-4"
         >
-          <ArrowLeft className="w-4 h-4" /> Back to Dashboard
-        </Button>
+          <ArrowLeft className="mr-2 h-4 w-4" />
+          Back to Dashboard
+        </Link>
+        
+        <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">
+          Your Speech Therapy Session
+        </h1>
+        <p className="text-gray-600 dark:text-gray-400 mb-4">
+          Exercises tailored for {userSeverity} stuttering severity
+        </p>
+        
+        <div className="flex items-center gap-2 mb-6">
+          <Badge className={getSeverityColor(userSeverity)}>
+            {userSeverity} severity
+          </Badge>
+          <span className="text-sm text-gray-500">
+            {exercises.length} exercises available
+          </span>
+        </div>
       </div>
 
-      <h1 className="text-2xl font-semibold text-therapy-purple-800 mb-6">Your Personalized Session</h1>
-
-      <div className="space-y-4">
-        {selectedExercises.map((exercise) => (
-          <div key={exercise.id} className="bg-white p-4 rounded-xl shadow">
-            <h3 className="font-bold text-lg text-gray-800">{exercise.title}</h3>
-            <p className="text-gray-600">{exercise.description}</p>
-            <Button
-              className="mt-3 bg-therapy-purple-500 text-white"
-              onClick={() => handleStartExercise(exercise)}
-              disabled={completed[exercise.id]}
-            >
-              {completed[exercise.id] ? "Completed" : "Start Exercise"}
+      {exercises.length === 0 ? (
+        <div className="text-center py-12">
+          <p className="text-gray-500 dark:text-gray-400 mb-4">
+            No exercises available for your severity level.
+          </p>
+          <Link 
+            to="/exercises" 
+            className="text-blue-600 hover:text-blue-800 underline"
+          >
+            Browse all exercises
+          </Link>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {exercises.map((exercise) => (
+            <Card key={exercise.id} className="hover:shadow-lg transition-shadow cursor-pointer" onClick={() => handleExerciseClick(exercise)}>
+              <CardHeader>
+                <div className="flex items-start justify-between">
+                  <div className="flex-1">
+                    <CardTitle className="text-lg mb-2">{exercise.title}</CardTitle>
+                    <div className="flex flex-wrap gap-2 mb-3">
+                      <Badge className={getSeverityColor(exercise.severity)}>
+                        {exercise.severity}
+                      </Badge>
+                      <Badge className={getEvidenceLevelColor(exercise.evidence_level)}>
+                        Level {exercise.evidence_level}
+                      </Badge>
+                    </div>
+                  </div>
+                  <Button size="sm" variant="ghost" className="ml-2">
+                    <Play className="h-4 w-4" />
             </Button>
           </div>
-        ))}
+              </CardHeader>
+              <CardContent>
+                <CardDescription className="mb-4 line-clamp-3">
+                  {exercise.description}
+                </CardDescription>
+                
+                <div className="space-y-2">
+                  <div className="flex items-center text-sm text-gray-600 dark:text-gray-400">
+                    <Clock className="h-4 w-4 mr-2" />
+                    {exercise.duration_minutes} minutes
+                  </div>
+                  
+                  <div className="flex items-center text-sm text-gray-600 dark:text-gray-400">
+                    <Target className="h-4 w-4 mr-2" />
+                    {exercise.category}
       </div>
 
-      {allCompleted && (
-        <div className="mt-6">
-          <Button className="bg-green-600 text-white" onClick={handleFinishSession}>
-            Finish Session
-          </Button>
+                  <div className="flex items-center text-sm text-gray-600 dark:text-gray-400">
+                    <Award className="h-4 w-4 mr-2" />
+                    {exercise.target_skills}
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          ))}
         </div>
       )}
     </div>

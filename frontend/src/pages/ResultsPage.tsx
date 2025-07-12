@@ -41,9 +41,9 @@ const ResultsPage: React.FC = () => {
             "Try the guided relaxation exercises in our app"
           ],
           exercises: result.analysis_data?.exercises || [
-            { id: 1, title: "Deep Breathing", difficulty: "Easy" },
-            { id: 2, title: "Gentle Onsets", difficulty: "Medium" },
-            { id: 3, title: "Paced Reading", difficulty: "Medium" }
+            { id: 1, title: "Deep Breathing", severity: "mild" },
+            { id: 2, title: "Gentle Onsets", severity: "mild" },
+            { id: 3, title: "Paced Reading", severity: "mild" }
           ]
         };
         
@@ -194,7 +194,7 @@ const ResultsPage: React.FC = () => {
                           <span>{exercise.title}</span>
                         </div>
                         <span className="text-xs bg-therapy-blue-50 dark:bg-blue-900/20 text-therapy-blue-500 px-2 py-0.5 rounded">
-                          {exercise.difficulty}
+                          {exercise.severity}
                         </span>
                       </div>
                     ))}

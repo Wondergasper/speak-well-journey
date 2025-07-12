@@ -6,6 +6,10 @@ export interface User {
   id: number;
   name: string;
   email: string;
+  severity?: 'none' | 'mild' | 'moderate' | 'severe';
+  age?: number;
+  bio?: string;
+  therapy_goals?: string;
 }
 
 export interface LoginCredentials {
@@ -25,7 +29,7 @@ export interface AuthResponse {
 }
 
 export interface AnalysisResult {
-  severity: 'none' | 'mild' | 'severe';
+  severity: 'none' | 'mild' | 'moderate' | 'severe';
   score: number;
   details: {
     repetitions: { count: number; examples: string[] };
@@ -39,14 +43,22 @@ export interface AnalysisResult {
 export interface Exercise {
   id: number;
   title: string;
-  difficulty: 'Easy' | 'Medium' | 'Hard';
+  severity: 'none' | 'mild' | 'moderate' | 'severe';
   description?: string;
-  duration?: number;
+  instructions?: string;
+  duration_minutes?: number;
+  category?: string;
+  evidence_level?: 'A' | 'B' | 'C';
+  target_skills?: string;
+  prerequisites?: string;
+  progress_indicators?: string;
 }
 
 export interface ProgressEntry {
   date: string;
   score: number;
+  fluency_rating?: number;
+  confidence_rating?: number;
 }
 
 export interface CommunityPost {
@@ -211,17 +223,51 @@ export const analysisAPI = {
 
 // Exercises API
 export const exercisesAPI = {
-  getAll: async (severity?: string): Promise<any[]> => {
-    const params = severity ? `?severity=${severity}` : '';
-    return await apiCall<any[]>(`/exercises${params}`);
+  getAll: async (filters?: {
+    severity?: string;
+    category?: string;
+  }): Promise<Exercise[]> => {
+    const params = new URLSearchParams();
+    if (filters?.severity) params.append('severity', filters.severity);
+    if (filters?.category) params.append('category', filters.category);
+    
+    const queryString = params.toString();
+    const endpoint = queryString ? `/exercises?${queryString}` : '/exercises';
+    return await apiCall<Exercise[]>(endpoint);
   },
-  getById: async (id: number): Promise<any> => {
-    return await apiCall<any>(`/exercises/${id}`);
+
+  getById: async (id: number): Promise<Exercise> => {
+    return await apiCall<Exercise>(`/exercises/${id}`);
   },
-  complete: async (exerciseId: number, data?: { duration?: number; notes?: string }): Promise<any> => {
-    return await apiCall<any>(`/exercises/${exerciseId}/complete`, {
+
+  getRecommended: async (severity?: string): Promise<Exercise[]> => {
+    const params = new URLSearchParams();
+    if (severity) params.append('severity', severity);
+    
+    const queryString = params.toString();
+    const endpoint = queryString ? `/exercises/recommended?${queryString}` : '/exercises/recommended';
+    return await apiCall<Exercise[]>(endpoint);
+  },
+
+  startExercise: async (exerciseId: number): Promise<{ message: string; exercise: any; user_id: number }> => {
+    return await apiCall<{ message: string; exercise: any; user_id: number }>(`/exercises/${exerciseId}/start`, {
       method: 'POST',
-      body: JSON.stringify(data || {}),
+    });
+  },
+
+  completeExercise: async (
+    exerciseId: number, 
+    data: {
+      score?: number;
+      duration?: number;
+      fluency_rating?: number;
+      confidence_rating?: number;
+      notes?: string;
+    }
+  ): Promise<{ message: string; progress_id: number; exercise: any }> => {
+    return await apiCall<{ message: string; progress_id: number; exercise: any }>(`/exercises/${exerciseId}/complete`, {
+      method: 'POST',
+      body: JSON.stringify(data),
     });
   },
 };
