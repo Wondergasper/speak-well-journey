@@ -24,8 +24,12 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { Input } from '@/components/ui/input';
 import { Mic2 } from "lucide-react";
 import { profileAPI, progressAPI } from '@/services/api';
+import { useAuth } from '@/contexts/AuthContext';
+import { useNavigate } from 'react-router-dom';
 
 const DashboardPage: React.FC = () => {
+  const { isAuthenticated, user } = useAuth();
+  const navigate = useNavigate();
   const [selectedMood, setSelectedMood] = React.useState<string | null>(null);
   const [showScheduleModal, setShowScheduleModal] = React.useState(false);
   const [scheduledTime, setScheduledTime] = React.useState<string>('');
@@ -35,20 +39,31 @@ const DashboardPage: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    // Check if user is authenticated
+    if (!isAuthenticated) {
+      navigate('/login');
+      return;
+    }
+
     const fetchData = async () => {
       try {
         const profileData = await profileAPI.getProfile();
         const progressData = await progressAPI.getHistory();
         setProfile(profileData);
         setProgress(progressData.history || []);
-      } catch (err) {
-        setError('Failed to load dashboard data.');
+      } catch (err: any) {
+        if (err.status === 401) {
+          // Unauthorized - redirect to login
+          navigate('/login');
+        } else {
+          setError('Failed to load dashboard data.');
+        }
       } finally {
         setLoading(false);
       }
     };
     fetchData();
-  }, []);
+  }, [isAuthenticated, navigate]);
 
   const tips = [
   'Speak slowly and take deep breaths before each sentence.',

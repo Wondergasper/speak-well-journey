@@ -18,6 +18,15 @@ class PasswordUpdateSchema(Schema):
 
 profile_bp = Blueprint('profile', __name__)
 
+@profile_bp.route('/', methods=['OPTIONS'])
+def handle_options():
+    """Handle CORS preflight requests"""
+    response = jsonify({'status': 'ok'})
+    response.headers.add('Access-Control-Allow-Origin', '*')
+    response.headers.add('Access-Control-Allow-Headers', 'Content-Type,Authorization')
+    response.headers.add('Access-Control-Allow-Methods', 'GET,PUT,POST,DELETE,OPTIONS')
+    return response
+
 @profile_bp.route('/', methods=['GET'])
 @jwt_required()
 def get_profile():

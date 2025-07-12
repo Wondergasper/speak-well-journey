@@ -6,9 +6,6 @@ from marshmallow import Schema, fields, ValidationError
 from models import Progress
 from datetime import datetime
 
-class CompleteExerciseSchema(Schema):
-    exercise_id = fields.Int(required=True)
-
 exercises_bp = Blueprint('exercises', __name__)
 
 @exercises_bp.route('/', methods=['GET'])
@@ -90,16 +87,6 @@ def get_recommended_exercises():
         'prerequisites': exercise.prerequisites,
         'progress_indicators': exercise.progress_indicators
     } for exercise in exercises])
-
-@exercises_bp.route('/complete', methods=['POST'])
-@jwt_required()
-def complete_exercise():
-    try:
-        data = CompleteExerciseSchema().load(request.json)
-    except ValidationError as err:
-        return jsonify({'error': err.messages}), 400
-    # For demo, just echo back; extend Progress model for real completion
-    return jsonify({'message': 'Exercise marked as complete', 'data': data})
 
 @exercises_bp.route('/<int:exercise_id>/start', methods=['POST'])
 @jwt_required()

@@ -1,68 +1,179 @@
+import os
+import logging
 import numpy as np
 import torch
-from transformers import AutoTokenizer, AutoModelForSequenceClassification
-import os
-import json
-from typing import Dict, List, Any, Optional
-import logging
+import torchaudio
+from typing import Dict, List, Any
+from transformers import Wav2Vec2Processor, Wav2Vec2ForSequenceClassification
+import torch.nn.functional as F
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 class StutteringAnalyzer:
-    def __init__(self):
+    def __init__(self, model_path: str = None):
         """Initialize the stuttering detection model"""
         self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-        self.model_path = os.path.join(os.path.dirname(__file__), 'stuttering_model')
         
-        try:
-            if os.path.exists(self.model_path):
-                logger.info(f"Loading model from {self.model_path}")
-                self.tokenizer = AutoTokenizer.from_pretrained(self.model_path)
-                self.model = AutoModelForSequenceClassification.from_pretrained(self.model_path)
-                self.model.to(self.device)
-                self.model.eval()
-                logger.info(f"Model loaded successfully from {self.model_path}")
-            else:
-                logger.warning(f"Model path {self.model_path} not found, using placeholder")
-                self._load_placeholder_model()
-        except Exception as e:
-            logger.error(f"Error loading model: {e}")
-            self._load_placeholder_model()
+        # Set model path
+        if model_path is None:
+            self.model_path = os.path.join(os.path.dirname(__file__), 'stuttering_model')
+        else:
+            self.model_path = model_path
+            
+        self.model = None
+        self.processor = None
+        
+        # Try to load the trained model
+        self._load_model()
     
     def _load_model(self):
-        """Load the pre-trained model and tokenizer"""
+        """Load the trained Wav2Vec2 model and processor"""
         try:
-            if os.path.exists(self.model_path):
-                self.tokenizer = AutoTokenizer.from_pretrained(self.model_path)
-                self.model = AutoModelForSequenceClassification.from_pretrained(self.model_path)
+            # Check if model files exist - using the actual files present
+            required_files = ['pytorch_model.bin', 'preprocessor_config.json', 'tokenizer_config.json']
+            model_files_exist = all(
+                os.path.exists(os.path.join(self.model_path, file)) 
+                for file in required_files
+            )
+            
+            if model_files_exist:
+                logger.info(f"Loading trained model from {self.model_path}")
+                
+                # Load processor
+                self.processor = Wav2Vec2Processor.from_pretrained(self.model_path)
+                
+                # Load model - Wav2Vec2ForSequenceClassification will auto-detect config from preprocessor
+                self.model = Wav2Vec2ForSequenceClassification.from_pretrained(
+                    self.model_path,
+                    num_labels=2  # Binary classification: stuttering vs non-stuttering
+                )
                 self.model.to(self.device)
                 self.model.eval()
-                logger.info(f"Model loaded successfully from {self.model_path}")
+                
+                logger.info("Trained model loaded successfully!")
             else:
-                logger.warning(f"Model path {self.model_path} not found, using placeholder")
+                logger.warning(f"Trained model files not found in {self.model_path}")
+                logger.info("Using placeholder model for development")
                 self._load_placeholder_model()
-    except Exception as e:
-            logger.error(f"Error loading model: {e}")
+                
+        except Exception as e:
+            logger.error(f"Error loading trained model: {e}")
+            logger.info("Falling back to placeholder model")
             self._load_placeholder_model()
     
     def _load_placeholder_model(self):
         """Load placeholder model for development/testing"""
         logger.info("Loading placeholder model for development")
         # This would be replaced with actual model loading in production
+        self.model = None
+        self.processor = None
     
-    def analyze_audio(self, audio_features: Dict[str, Any]) -> Dict[str, Any]:
+    def analyze_audio_file(self, audio_path: str) -> Dict[str, Any]:
         """
-        Analyze audio features to detect stuttering patterns
+        Analyze audio file for stuttering patterns using Wav2Vec2 model
+        
+        Args:
+            audio_path: Path to the audio file
+            
+        Returns:
+            Dictionary with analysis results
+        """
+        try:
+            if self.model is None or self.processor is None:
+                logger.warning("No trained model available, using fallback analysis")
+                return self._generate_fallback_result()
+            
+            # Use the trained model for prediction
+            prediction, probability = self._predict_with_model(audio_path)
+            
+            # Determine severity based on probability
+            severity = self._determine_severity(probability)
+            
+            # Generate detailed analysis
+            analysis_data = self._generate_detailed_analysis(audio_path, probability)
+            
+            # Generate recommendations
+            recommendations = self._generate_recommendations(severity)
+            
+            # Suggest exercises
+            exercises = self._suggest_exercises(severity)
+            
+            return {
+                'stutter_probability': probability,
+                'severity': severity,
+                'analysis_data': analysis_data,
+                'recommendations': recommendations,
+                'exercises': exercises,
+                'confidence': self._calculate_confidence(probability, analysis_data)
+            }
+            
+        except Exception as e:
+            logger.error(f"Error in audio analysis: {e}")
+            return self._generate_fallback_result()
+    
+    def _predict_with_model(self, audio_path: str) -> tuple:
+        """Make prediction using the trained Wav2Vec2 model"""
+        try:
+            # Load audio
+            waveform, sample_rate = torchaudio.load(audio_path)
+            
+            # Resample to 16kHz if needed
+            if sample_rate != 16000:
+                resampler = torchaudio.transforms.Resample(sample_rate, 16000)
+                waveform = resampler(waveform)
+            
+            # Convert to mono if stereo
+            if waveform.shape[0] > 1:
+                waveform = torch.mean(waveform, dim=0, keepdim=True)
+            
+            # Flatten to 1D tensor
+            waveform = waveform.squeeze()
+            
+            # Process with Wav2Vec2Processor
+            inputs = self.processor(
+                waveform,
+                sampling_rate=16000,
+                return_tensors="pt",
+                padding=True
+            )
+            
+            # Move to appropriate device
+            input_values = inputs.input_values.to(self.device)
+            
+            # Model inference
+            self.model.eval()
+            with torch.no_grad():
+                outputs = self.model(input_values)
+                logits = outputs.logits
+                
+                # Apply softmax to get probabilities for each class
+                probabilities = F.softmax(logits, dim=-1)
+                
+                # Get the probability of stuttering (assuming class 1 is stuttering)
+                stutter_probability = probabilities[0][1].item()
+                
+                # Binary prediction based on 0.5 threshold
+                prediction = 1 if stutter_probability > 0.5 else 0
+            
+            return prediction, stutter_probability
+            
+        except Exception as e:
+            logger.error(f"Error in model prediction: {e}")
+            raise
+    
+    def analyze_audio_features(self, audio_features: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        Analyze audio features (fallback method when model is not available)
         
         Args:
             audio_features: Dictionary containing audio analysis features
             
         Returns:
             Dictionary with analysis results
-    """
-    try:
+        """
+        try:
             # Extract features from audio analysis
             speech_rate = audio_features.get('speech_rate', 0.0)
             pause_frequency = audio_features.get('pause_frequency', 0.0)
@@ -85,22 +196,22 @@ class StutteringAnalyzer:
                 prolongation_patterns, block_patterns, stutter_probability
             )
 
-        # Generate recommendations based on severity
+            # Generate recommendations based on severity
             recommendations = self._generate_recommendations(severity)
 
             # Suggest appropriate exercises
             exercises = self._suggest_exercises(severity)
 
-        return {
+            return {
                 'stutter_probability': stutter_probability,
-            'severity': severity,
+                'severity': severity,
                 'analysis_data': analysis_data,
-            'recommendations': recommendations,
+                'recommendations': recommendations,
                 'exercises': exercises,
-                'confidence': self._calculate_confidence(analysis_data)
-        }
+                'confidence': self._calculate_confidence(stutter_probability, analysis_data)
+            }
 
-    except Exception as e:
+        except Exception as e:
             logger.error(f"Error in audio analysis: {e}")
             return self._generate_fallback_result()
     
@@ -143,13 +254,20 @@ class StutteringAnalyzer:
             return 'mild'
         elif probability < 0.75:
             return 'moderate'
-    else:
+        else:
             return 'severe'
     
-    def _generate_detailed_analysis(self, speech_rate: float, pause_frequency: float,
-                                  repetition_patterns: List, prolongation_patterns: List,
-                                  block_patterns: List, probability: float) -> Dict[str, Any]:
+    def _generate_detailed_analysis(self, speech_rate: float = 0, pause_frequency: float = 0,
+                                  repetition_patterns: List = None, prolongation_patterns: List = None,
+                                  block_patterns: List = None, probability: float = 0.5) -> Dict[str, Any]:
         """Generate detailed analysis of speech patterns"""
+        if repetition_patterns is None:
+            repetition_patterns = []
+        if prolongation_patterns is None:
+            prolongation_patterns = []
+        if block_patterns is None:
+            block_patterns = []
+            
         severity_factor = min(probability * 2, 1.0)
         
         return {
@@ -176,23 +294,23 @@ class StutteringAnalyzer:
                 'examples': ["ssssunday", "mmmmountain", "ffffirst"][:int(severity_factor * 2)]
             },
             'overall_assessment': {
-            'stutter_count': int(severity_factor * np.random.randint(3, 15)),
+                'stutter_count': int(severity_factor * np.random.randint(3, 15)),
                 'fluency_score': max(0, 100 - int(probability * 100)),
                 'confidence_level': 'high' if probability > 0.7 or probability < 0.3 else 'medium'
             }
         }
 
     def _generate_recommendations(self, severity: str) -> List[str]:
-    """Generate recommendations based on severity"""
-    if severity == 'none':
-        return [
+        """Generate recommendations based on severity"""
+        if severity == 'none':
+            return [
                 "Continue with current speech patterns",
                 "Practice general communication skills",
                 "Maintain good breathing habits",
                 "Consider public speaking practice for confidence"
-        ]
-    elif severity == 'mild':
-        return [
+            ]
+        elif severity == 'mild':
+            return [
                 "Practice gentle speech onsets",
                 "Focus on breathing exercises",
                 "Use light articulatory contacts",
@@ -207,9 +325,9 @@ class StutteringAnalyzer:
                 "Focus on rate control and rhythm",
                 "Consider professional speech therapy",
                 "Practice in gradually challenging situations"
-        ]
-    else:  # severe
-        return [
+            ]
+        else:  # severe
+            return [
                 "Seek professional speech therapy immediately",
                 "Practice comprehensive stuttering management",
                 "Focus on communication effectiveness over fluency",
@@ -218,8 +336,8 @@ class StutteringAnalyzer:
                 "Work on reducing communication anxiety"
             ]
     
-    def _get_recommended_exercises(self, severity: str) -> List[Dict[str, str]]:
-    """Get recommended exercises based on severity"""
+    def _suggest_exercises(self, severity: str) -> List[Dict[str, str]]:
+        """Get recommended exercises based on severity"""
         exercise_mapping = {
             'none': [
                 {'title': 'Diaphragmatic Breathing Foundation', 'category': 'Breathing'},
@@ -236,64 +354,68 @@ class StutteringAnalyzer:
                 {'title': 'Stuttering Modification - Cancellation', 'category': 'Stuttering Management'},
                 {'title': 'Pull-Out Technique', 'category': 'Stuttering Management'},
                 {'title': 'Preparatory Sets', 'category': 'Stuttering Management'},
-                {'title': 'Complex Fluency Shaping', 'category': 'Fluency'},
-                {'title': 'Voluntary Stuttering', 'category': 'Stuttering Management'}
+                {'title': 'Complex Fluency Shaping', 'category': 'Fluency'}
             ],
             'severe': [
                 {'title': 'Comprehensive Stuttering Management', 'category': 'Comprehensive'},
                 {'title': 'Maintenance and Generalization', 'category': 'Maintenance'},
-                {'title': 'Cognitive Restructuring', 'category': 'Cognitive'}
+                {'title': 'Professional Therapy Support', 'category': 'Professional'}
             ]
         }
         
-        return exercise_mapping.get(severity, exercise_mapping['mild'])
+        return exercise_mapping.get(severity, [])
     
-    def _suggest_exercises(self, severity: str) -> List[Dict[str, str]]:
-        """Suggest exercises based on severity"""
-        return self._get_recommended_exercises(severity)
-    
-    def _calculate_confidence(self, analysis_data: Dict[str, Any]) -> float:
+    def _calculate_confidence(self, probability: float, analysis_data: Dict[str, Any]) -> float:
         """Calculate confidence level of the analysis"""
         try:
-            # Simple confidence calculation based on data quality
-            factors = [
-                analysis_data.get('speech_rate_analysis', {}).get('assessment') == 'normal',
-                analysis_data.get('pause_analysis', {}).get('assessment') == 'normal',
-                len(analysis_data.get('repetition_analysis', {}).get('examples', [])) > 0,
-                len(analysis_data.get('prolongation_analysis', {}).get('examples', [])) > 0,
-                len(analysis_data.get('block_analysis', {}).get('examples', [])) > 0
-            ]
+            # Base confidence from probability certainty
+            if probability > 0.8 or probability < 0.2:
+                confidence = 0.9  # High confidence for extreme probabilities
+            elif probability > 0.6 or probability < 0.4:
+                confidence = 0.7  # Medium confidence for moderate probabilities
+            else:
+                confidence = 0.5  # Lower confidence for uncertain cases
             
-            confidence = sum(factors) / len(factors)
-            return min(1.0, max(0.0, confidence))
+            # Adjust based on data availability
+            if analysis_data.get('speech_rate_analysis', {}).get('rate', 0) > 0:
+                confidence += 0.1
             
+            if analysis_data.get('repetition_analysis', {}).get('count', 0) >= 0:
+                confidence += 0.1
+            
+            return min(1.0, confidence)
         except Exception as e:
             logger.error(f"Error calculating confidence: {e}")
-            return 0.5
+            return 0.7  # Default confidence
     
     def _generate_fallback_result(self) -> Dict[str, Any]:
         """Generate fallback result when analysis fails"""
-        severity = np.random.choice(['none', 'mild', 'moderate', 'severe'])
-
-    return {
-            'stutter_probability': np.random.uniform(0.1, 0.9),
-        'severity': severity,
+        return {
+            'stutter_probability': 0.5,
+            'severity': 'moderate',
             'analysis_data': {
-                'speech_rate_analysis': {'rate': 2.0, 'assessment': 'normal'},
-                'pause_analysis': {'frequency': 7, 'assessment': 'normal'},
-                'repetition_analysis': {'count': 2, 'examples': []},
-                'prolongation_analysis': {'count': 1, 'examples': []},
-                'block_analysis': {'count': 1, 'examples': []},
-                'overall_assessment': {'stutter_count': 3, 'fluency_score': 85, 'confidence_level': 'low'}
+                'overall_assessment': {
+                    'stutter_count': 0,
+                    'fluency_score': 50,
+                    'confidence_level': 'low'
+                }
             },
-            'recommendations': self._generate_recommendations(severity),
-            'exercises': self._get_recommended_exercises(severity),
+            'recommendations': [
+                "Unable to analyze audio properly",
+                "Please try recording again",
+                "Consider professional assessment"
+            ],
+            'exercises': [],
             'confidence': 0.3
         }
 
 # Global analyzer instance
 analyzer = StutteringAnalyzer()
 
-def analyze_speech(audio_features: Dict[str, Any]) -> Dict[str, Any]:
-    """Main function to analyze speech for stuttering patterns"""
-    return analyzer.analyze_audio(audio_features)
+def analyze_audio(audio_features: Dict[str, Any]) -> Dict[str, Any]:
+    """Global function to analyze audio features"""
+    return analyzer.analyze_audio_features(audio_features)
+
+def analyze_audio_file(audio_path: str) -> Dict[str, Any]:
+    """Global function to analyze audio file"""
+    return analyzer.analyze_audio_file(audio_path)

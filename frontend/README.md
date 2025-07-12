@@ -1,73 +1,288 @@
-# Welcome to your Lovable project
+# SpeakWell Journey - Frontend
 
-## Project info
+A modern React TypeScript frontend for the AI-powered speech therapy application, built with shadcn/ui and Tailwind CSS.
 
-**URL**: https://lovable.dev/projects/54557ac6-2b8a-4a81-b2be-c114478269c5
+## 🚀 Features
 
-## How can I edit this code?
+### 🎨 Modern UI/UX
+- **Responsive Design**: Works seamlessly on desktop, tablet, and mobile
+- **Dark/Light Mode**: Toggle between themes with persistent preferences
+- **Accessibility**: WCAG compliant with keyboard navigation and screen reader support
+- **Smooth Animations**: Framer Motion powered transitions and micro-interactions
 
-There are several ways of editing your application.
+### 🔐 Authentication & User Management
+- **JWT Authentication**: Secure login/logout with token management
+- **Protected Routes**: Automatic redirection for unauthenticated users
+- **User Profiles**: Editable user information and preferences
+- **Session Management**: Persistent login state with automatic token refresh
 
-**Use Lovable**
+### 🎤 Audio Recording & Analysis
+- **Real-time Recording**: Built-in microphone support with visual feedback
+- **Audio Visualization**: Waveform display during recording
+- **File Upload**: Support for various audio formats (WAV, MP3, M4A, FLAC, OGG)
+- **Analysis Results**: Detailed stuttering analysis with severity classification
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/54557ac6-2b8a-4a81-b2be-c114478269c5) and start prompting.
+### 📊 Progress Tracking
+- **Interactive Charts**: Real-time progress visualization with Chart.js
+- **Session History**: Complete record of practice sessions and improvements
+- **Goal Setting**: Personalized therapy objectives with progress indicators
+- **Statistics Dashboard**: Comprehensive analytics and insights
 
-Changes made via Lovable will be committed automatically to this repo.
+### 🏋️ Exercise Management
+- **Severity-Based Filtering**: Exercises organized by stuttering severity
+- **Evidence Levels**: A, B, C classification for exercise effectiveness
+- **Interactive Sessions**: Guided exercise sessions with real-time feedback
+- **Progress Tracking**: Track completion and improvement for each exercise
 
-**Use your preferred IDE**
+### 👥 Community Features
+- **User Forums**: Community posts and discussions
+- **Shared Experiences**: User stories and support networks
+- **Anonymous Sharing**: Option to share progress anonymously
 
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
+## 🛠️ Technology Stack
 
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
+- **Framework**: React 18 with TypeScript
+- **Build Tool**: Vite for fast development and optimized builds
+- **Styling**: Tailwind CSS with shadcn/ui components
+- **State Management**: React Context + React Query for server state
+- **Routing**: React Router v6 with protected routes
+- **Animations**: Framer Motion for smooth transitions
+- **Charts**: Chart.js with React wrapper
+- **Audio**: Web Audio API for recording and playback
+- **HTTP Client**: Fetch API with custom error handling
 
-Follow these steps:
+## 📦 Installation
 
-```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
+### Prerequisites
+- Node.js 18+ and npm
+- Backend server running (see backend README)
 
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
+### Setup
+```bash
+# Install dependencies
+npm install
 
-# Step 3: Install the necessary dependencies.
-npm i
+# Create environment file
+cp .env.example .env
 
-# Step 4: Start the development server with auto-reloading and an instant preview.
+# Start development server
 npm run dev
 ```
 
-**Edit a file directly in GitHub**
+### Environment Variables
+Create a `.env` file in the frontend directory:
+```env
+VITE_API_BASE_URL=http://localhost:5000/api
+```
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
+## 🏗️ Project Structure
 
-**Use GitHub Codespaces**
+```
+src/
+├── components/           # Reusable UI components
+│   ├── ui/              # shadcn/ui components
+│   ├── AudioRecorder.tsx # Audio recording component
+│   ├── Navbar.tsx       # Navigation component
+│   ├── ProgressChart.tsx # Progress visualization
+│   └── SeverityBadge.tsx # Severity indicator
+├── pages/               # Application pages
+│   ├── DashboardPage.tsx # Main dashboard
+│   ├── LoginPage.tsx    # Authentication
+│   ├── RecordPage.tsx   # Audio recording
+│   ├── ResultsPage.tsx  # Analysis results
+│   └── ExercisesPage.tsx # Exercise library
+├── contexts/            # React contexts
+│   ├── AuthContext.tsx  # Authentication state
+│   └── ThemeProvider.tsx # Theme management
+├── hooks/               # Custom React hooks
+│   ├── use-api.ts       # API integration
+│   └── use-mobile.tsx   # Mobile detection
+├── services/            # API services
+│   └── api.ts           # HTTP client and endpoints
+├── lib/                 # Utility functions
+│   └── utils.ts         # Common utilities
+└── data/                # Static data
+    └── exercises.ts     # Exercise definitions
+```
 
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
+## 🎯 Key Components
 
-## What technologies are used for this project?
+### AudioRecorder
+- Real-time audio recording with visual feedback
+- Waveform visualization during recording
+- File format validation and error handling
+- Automatic upload to backend for analysis
 
-This project is built with:
+### ProgressChart
+- Interactive charts showing fluency improvements
+- Multiple chart types (line, bar, radar)
+- Responsive design with mobile optimization
+- Real-time data updates
 
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
+### SeverityBadge
+- Visual indicators for stuttering severity levels
+- Color-coded badges (none, mild, moderate, severe)
+- Consistent styling across the application
 
-## How can I deploy this project?
+## 🔧 Development
 
-Simply open [Lovable](https://lovable.dev/projects/54557ac6-2b8a-4a81-b2be-c114478269c5) and click on Share -> Publish.
+### Available Scripts
+```bash
+# Development server
+npm run dev
 
-## Can I connect a custom domain to my Lovable project?
+# Build for production
+npm run build
 
-Yes, you can!
+# Preview production build
+npm run preview
 
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
+# Type checking
+npm run type-check
 
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/tips-tricks/custom-domain#step-by-step-guide)
+# Linting
+npm run lint
+
+# Format code
+npm run format
+```
+
+### Code Style
+- **TypeScript**: Strict type checking enabled
+- **ESLint**: Code quality and consistency
+- **Prettier**: Automatic code formatting
+- **Husky**: Pre-commit hooks for quality assurance
+
+### Component Guidelines
+- Use TypeScript interfaces for all props
+- Implement proper error boundaries
+- Follow accessibility best practices
+- Use React Query for server state management
+- Implement loading and error states
+
+## 🧪 Testing
+
+### Unit Tests
+```bash
+# Run unit tests
+npm test
+
+# Run tests in watch mode
+npm run test:watch
+
+# Generate coverage report
+npm run test:coverage
+```
+
+### E2E Tests
+```bash
+# Run end-to-end tests
+npm run test:e2e
+
+# Run specific test file
+npm run test:e2e -- --spec cypress/e2e/login.cy.ts
+```
+
+## 🚀 Deployment
+
+### Build for Production
+```bash
+# Create optimized build
+npm run build
+
+# Preview build locally
+npm run preview
+```
+
+### Environment Configuration
+Update environment variables for production:
+```env
+VITE_API_BASE_URL=https://your-backend-api.com/api
+```
+
+### Deployment Platforms
+- **Vercel**: Zero-config deployment
+- **Netlify**: Drag-and-drop deployment
+- **AWS S3 + CloudFront**: Static hosting
+- **GitHub Pages**: Free hosting for open source
+
+## 🔒 Security
+
+### Authentication
+- JWT tokens stored securely in localStorage
+- Automatic token refresh on expiration
+- Protected routes with authentication guards
+- Secure logout with token cleanup
+
+### Data Protection
+- Input validation on all forms
+- XSS protection with proper escaping
+- CORS configuration for API requests
+- Secure file upload validation
+
+## 📱 Mobile Support
+
+### Responsive Design
+- Mobile-first approach with Tailwind CSS
+- Touch-friendly interface elements
+- Optimized audio recording for mobile devices
+- Progressive Web App (PWA) capabilities
+
+### Browser Compatibility
+- Chrome 90+
+- Firefox 88+
+- Safari 14+
+- Edge 90+
+
+## 🎨 Theming
+
+### Customization
+- CSS custom properties for easy theming
+- Dark/light mode support
+- Custom color palette for brand consistency
+- Responsive typography scale
+
+### Component Library
+- shadcn/ui components for consistency
+- Custom component variants
+- Accessibility-focused design
+- Internationalization ready
+
+## 📚 API Integration
+
+### Service Layer
+- Centralized API client in `services/api.ts`
+- Automatic error handling and retry logic
+- Request/response interceptors
+- Type-safe API calls with TypeScript
+
+### Endpoints
+- Authentication (login, signup, logout)
+- Audio analysis (upload, results, history)
+- User management (profile, settings)
+- Exercises (list, details, completion)
+- Progress tracking (history, statistics)
+
+## 🤝 Contributing
+
+1. Fork the repository
+2. Create a feature branch
+3. Make your changes
+4. Add tests for new functionality
+5. Ensure all tests pass
+6. Submit a pull request
+
+### Development Guidelines
+- Follow TypeScript best practices
+- Write meaningful commit messages
+- Add JSDoc comments for complex functions
+- Maintain component documentation
+- Update tests for new features
+
+## 📄 License
+
+This project is licensed under the MIT License.
+
+---
+
+**Built with ❤️ for the speech therapy community**

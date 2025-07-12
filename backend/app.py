@@ -12,6 +12,9 @@ jwt = JWTManager()
 def create_app():
     app = Flask(__name__)
     app.config.from_object(Config)
+    
+    # Configure Flask to handle trailing slashes properly
+    app.url_map.strict_slashes = False
 
     # Configure upload folder
     upload_folder = os.path.join(os.path.dirname(__file__), 'uploads')
@@ -22,7 +25,13 @@ def create_app():
     # Initialize extensions
     db.init_app(app)
     jwt.init_app(app)
-    CORS(app, supports_credentials=True, resources={r"/*": {"origins": "*"}})
+    
+    # Configure CORS properly - allow all origins for development
+    CORS(app, 
+         supports_credentials=True, 
+         origins="*",
+         methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+         allow_headers=["Content-Type", "Authorization", "X-Requested-With"])
 
     # Import models
     from models import User, Exercise, Progress
@@ -69,7 +78,14 @@ def create_app():
     from routes.settings import settings_bp
     from routes.community import community_bp
     from routes.analytics import analytics_bp
-    from routes.notifications import notifications_bp
+    
+    # Import notifications blueprint with error handling
+    try:
+        from routes.notifications import notifications_bp
+        app.register_blueprint(notifications_bp, url_prefix='/api/notifications')
+    except ImportError as e:
+        print(f"Warning: Could not import notifications blueprint: {e}")
+        print("Notifications API will not be available")
 
     app.register_blueprint(auth_bp, url_prefix='/api/auth')
     app.register_blueprint(exercises_bp, url_prefix='/api/exercises')
@@ -80,7 +96,6 @@ def create_app():
     app.register_blueprint(settings_bp, url_prefix='/api/settings')
     app.register_blueprint(community_bp, url_prefix='/api/community')
     app.register_blueprint(analytics_bp, url_prefix='/api/analytics')
-    app.register_blueprint(notifications_bp, url_prefix='/api/notifications')
 
     # Global error handlers
     @app.errorhandler(404)
@@ -102,6 +117,18 @@ def create_app():
 app = create_app()
 
 if __name__ == '__main__':
-    with app.app_context():
-        db.create_all()
-    app.run(host='0.0.0.0', port=5000, debug=True)
+    try:
+        with app.app_context():
+            # Initialize database
+            db.create_all()
+            print("✅ Database initialized successfully")
+        
+        # Start the server
+        print("🚀 Starting Flask server...")
+        print("🌐 Server will be available at: http://localhost:5000")
+        app.run(host='0.0.0.0', port=5000, debug=True)
+        
+    except Exception as e:
+        print(f"❌ Failed to start server: {e}")
+        import traceback
+        traceback.print_exc()

@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useAuth as useAuthHook, useLogin, useSignup, useForgotPassword, useResetPassword } from '@/hooks/use-api';
+import { authAPI } from '@/services/api';
 import { User, LoginCredentials, SignupData, APIError } from '@/services/api';
 import { useToast } from '@/components/ui/use-toast';
 
@@ -32,32 +32,37 @@ interface AuthProviderProps {
 export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const navigate = useNavigate();
   const { toast } = useToast();
-  
-  // Get authentication state from React Query
-  const { user, isAuthenticated, isLoading, error } = useAuthHook();
-  
-  // Mutations
-  const loginMutation = useLogin();
-  const signupMutation = useSignup();
-  const forgotPasswordMutation = useForgotPassword();
-  const resetPasswordMutation = useResetPassword();
+  const [user, setUser] = useState<User | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
 
-  // Handle authentication errors
+  // Check for existing authentication on mount
   useEffect(() => {
-    if (error && error instanceof APIError && error.status === 401) {
-      // Token expired or invalid, redirect to login
-      navigate('/login');
-      toast({
-        variant: "destructive",
-        title: "Session Expired",
-        description: "Please log in again to continue.",
-      });
-    }
-  }, [error, navigate, toast]);
+    const checkAuth = () => {
+      const token = localStorage.getItem('authToken');
+      const userStr = localStorage.getItem('user');
+      
+      if (token && userStr) {
+        try {
+          const userData = JSON.parse(userStr);
+          setUser(userData);
+        } catch (error) {
+          console.error('Error parsing user data:', error);
+          localStorage.removeItem('authToken');
+          localStorage.removeItem('user');
+        }
+      }
+      setIsLoading(false);
+    };
+
+    checkAuth();
+  }, []);
 
   const login = async (credentials: LoginCredentials) => {
     try {
-      await loginMutation.mutateAsync(credentials);
+      setIsLoading(true);
+      const response = await authAPI.login(credentials);
+      setUser(response.user);
+      
       toast({
         title: "Login successful!",
         description: "Welcome back to SpeakWell.",
@@ -74,12 +79,16 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         description: message,
       });
       throw error;
+    } finally {
+      setIsLoading(false);
     }
   };
 
   const signup = async (userData: SignupData) => {
     try {
-      await signupMutation.mutateAsync(userData);
+      setIsLoading(true);
+      await authAPI.signup(userData);
+      
       toast({
         title: "Account created!",
         description: "Please log in with your new account.",
@@ -96,13 +105,14 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         description: message,
       });
       throw error;
+    } finally {
+      setIsLoading(false);
     }
   };
 
   const logout = () => {
-    // Clear authentication data
-    localStorage.removeItem('authToken');
-    localStorage.removeItem('user');
+    authAPI.logout();
+    setUser(null);
     
     toast({
       title: "Logged out",
@@ -114,7 +124,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
   const forgotPassword = async (email: string) => {
     try {
-      const result = await forgotPasswordMutation.mutateAsync(email);
+      setIsLoading(true);
+      const result = await authAPI.forgotPassword(email);
+      
       toast({
         title: "Reset email sent",
         description: result.reset_token 
@@ -132,12 +144,16 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         description: message,
       });
       throw error;
+    } finally {
+      setIsLoading(false);
     }
   };
 
   const resetPassword = async (token: string, newPassword: string) => {
     try {
-      await resetPasswordMutation.mutateAsync({ token, newPassword });
+      setIsLoading(true);
+      await authAPI.resetPassword(token, newPassword);
+      
       toast({
         title: "Password reset successful",
         description: "You can now log in with your new password.",
@@ -154,12 +170,14 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         description: message,
       });
       throw error;
+    } finally {
+      setIsLoading(false);
     }
   };
 
   const value: AuthContextType = {
     user,
-    isAuthenticated,
+    isAuthenticated: !!user,
     isLoading,
     login,
     signup,

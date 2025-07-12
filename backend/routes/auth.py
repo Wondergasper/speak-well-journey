@@ -23,6 +23,24 @@ class ResetPasswordSchema(Schema):
 
 auth_bp = Blueprint('auth', __name__)
 
+@auth_bp.route('/login', methods=['OPTIONS'])
+def handle_login_options():
+    """Handle CORS preflight requests for login"""
+    response = jsonify({'status': 'ok'})
+    response.headers.add('Access-Control-Allow-Origin', '*')
+    response.headers.add('Access-Control-Allow-Headers', 'Content-Type,Authorization')
+    response.headers.add('Access-Control-Allow-Methods', 'POST,OPTIONS')
+    return response
+
+@auth_bp.route('/signup', methods=['OPTIONS'])
+def handle_signup_options():
+    """Handle CORS preflight requests for signup"""
+    response = jsonify({'status': 'ok'})
+    response.headers.add('Access-Control-Allow-Origin', '*')
+    response.headers.add('Access-Control-Allow-Headers', 'Content-Type,Authorization')
+    response.headers.add('Access-Control-Allow-Methods', 'POST,OPTIONS')
+    return response
+
 @auth_bp.route('/signup', methods=['POST'])
 def signup():
     try:
