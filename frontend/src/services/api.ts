@@ -181,6 +181,13 @@ export const authAPI = {
   isAuthenticated: (): boolean => {
     return !!localStorage.getItem('authToken');
   },
+
+  changePassword: async (current_password: string, new_password: string): Promise<any> => {
+    return await apiCall('/auth/change-password', {
+      method: 'POST',
+      body: JSON.stringify({ current_password, new_password }),
+    });
+  },
 };
 
 // Analysis API
@@ -313,6 +320,16 @@ export const profileAPI = {
       body: JSON.stringify(userData),
     });
   },
+
+  getPreferences: async (): Promise<any> => {
+    return await apiCall('/profile/preferences', { method: 'GET' });
+  },
+  updatePreferences: async (prefs: any): Promise<any> => {
+    return await apiCall('/profile/preferences', {
+      method: 'PUT',
+      body: JSON.stringify(prefs),
+    });
+  },
 };
 
 // Settings API (assuming these endpoints exist)
@@ -357,6 +374,12 @@ export const onboardingAPI = {
   },
 };
 
+export const userAPI = {
+  deleteAccount: async (): Promise<any> => {
+    return await apiCall('/user/account', { method: 'DELETE' });
+  },
+};
+
 // Export all APIs
 export const api = {
   auth: authAPI,
@@ -368,6 +391,7 @@ export const api = {
   settings: settingsAPI,
   notifications: notificationsAPI,
   onboarding: onboardingAPI,
+  user: userAPI,
 };
 
 export default api; 
