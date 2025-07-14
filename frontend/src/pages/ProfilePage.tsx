@@ -26,7 +26,7 @@ import {
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import Navbar from '@/components/Navbar';
-import { profileAPI, progressAPI } from '@/services/api';
+import { profileAPI, progressAPI, authAPI, userAPI } from '@/services/api';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -81,6 +81,9 @@ const ProfilePage: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
   const [recentActivity, setRecentActivity] = useState<any[]>([]);
+  const [passwordForm, setPasswordForm] = useState({ current: '', new: '', confirm: '' });
+  const [passwordError, setPasswordError] = useState<string | null>(null);
+  const [passwordSuccess, setPasswordSuccess] = useState<string | null>(null);
 
   // Mock data for demonstration - replace with actual API calls
   useEffect(() => {
@@ -154,12 +157,33 @@ const ProfilePage: React.FC = () => {
   };
 
   const handleChangePassword = async () => {
-    // Implement password change logic with backend POST /auth/change-password
-    // Show success/error messages as needed
+    setPasswordError(null);
+    setPasswordSuccess(null);
+    if (!passwordForm.current || !passwordForm.new || !passwordForm.confirm) {
+      setPasswordError('All fields are required.');
+      return;
+    }
+    if (passwordForm.new !== passwordForm.confirm) {
+      setPasswordError('New passwords do not match.');
+      return;
+    }
+    try {
+      await authAPI.changePassword(passwordForm.current, passwordForm.new);
+      setPasswordSuccess('Password updated successfully!');
+      setPasswordForm({ current: '', new: '', confirm: '' });
+    } catch (err: any) {
+      setPasswordError(err?.data?.error || 'Failed to update password.');
+    }
   };
   const handleDeleteAccount = async () => {
-    // Implement account deletion logic with backend DELETE /user/account
-    // Show confirmation and success/error messages as needed
+    if (!window.confirm('Are you sure you want to delete your account? This action cannot be undone.')) return;
+    try {
+      await userAPI.deleteAccount();
+      authAPI.logout();
+      window.location.href = '/signup';
+    } catch (err: any) {
+      alert(err?.data?.error || 'Failed to delete account.');
+    }
   };
 
   if (loading) {
@@ -496,9 +520,11 @@ const ProfilePage: React.FC = () => {
                     <div>
                       <h3 className="font-semibold mb-3">Change Password</h3>
                       <div className="space-y-3">
-                        <Input type="password" placeholder="Current Password" id="currentPassword" />
-                        <Input type="password" placeholder="New Password" id="newPassword" />
-                        <Input type="password" placeholder="Confirm New Password" id="confirmNewPassword" />
+                        {passwordError && <div className="text-red-500 bg-red-50 dark:bg-red-900/20 p-2 rounded">{passwordError}</div>}
+                        {passwordSuccess && <div className="text-green-600 bg-green-50 dark:bg-green-900/20 p-2 rounded">{passwordSuccess}</div>}
+                        <Input type="password" placeholder="Current Password" id="currentPassword" value={passwordForm.current} onChange={e => setPasswordForm(f => ({ ...f, current: e.target.value }))} />
+                        <Input type="password" placeholder="New Password" id="newPassword" value={passwordForm.new} onChange={e => setPasswordForm(f => ({ ...f, new: e.target.value }))} />
+                        <Input type="password" placeholder="Confirm New Password" id="confirmNewPassword" value={passwordForm.confirm} onChange={e => setPasswordForm(f => ({ ...f, confirm: e.target.value }))} />
                         <Button className="bg-therapy-purple-500 hover:bg-therapy-purple-700" onClick={handleChangePassword}>
                           Update Password
                         </Button>
