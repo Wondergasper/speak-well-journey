@@ -78,6 +78,7 @@ def create_app():
     from routes.settings import settings_bp
     from routes.community import community_bp
     from routes.analytics import analytics_bp
+    from routes.onboarding import onboarding_bp
     
     # Import notifications blueprint with error handling
     try:
@@ -96,6 +97,7 @@ def create_app():
     app.register_blueprint(settings_bp, url_prefix='/api/settings')
     app.register_blueprint(community_bp, url_prefix='/api/community')
     app.register_blueprint(analytics_bp, url_prefix='/api/analytics')
+    app.register_blueprint(onboarding_bp, url_prefix='/api/onboarding')
 
     # Global error handlers
     @app.errorhandler(404)

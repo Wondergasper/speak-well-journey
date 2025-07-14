@@ -4,6 +4,7 @@ import StepBasicInfo from '@/components/onboarding/StepBasicInfo';
 import StepVoiceAssessment from '@/components/onboarding/StepVoiceAssessment';
 import StepGoals from '@/components/onboarding/StepGoals';
 import StepPlanSummary from '@/components/onboarding/StepPlanSummary';
+import { onboardingAPI } from '@/services/api'; // Assume onboardingAPI exists
 
 const OnboardingPage = () => {
   const [step, setStep] = useState(1);
@@ -23,8 +24,14 @@ const OnboardingPage = () => {
     setFormData((prev) => ({ ...prev, ...data }));
   };
 
-  const handleFinish = () => {
-    navigate('/dashboard'); 
+  const handleFinish = async () => {
+    // Save onboarding data to backend before navigating
+    try {
+      await onboardingAPI.save(formData);
+    } catch (err) {
+      // Handle error (optional)
+    }
+    navigate('/dashboard');
   };
 
   return (

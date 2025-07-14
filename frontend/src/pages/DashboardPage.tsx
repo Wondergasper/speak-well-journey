@@ -194,6 +194,9 @@ const DashboardPage: React.FC = () => {
     setShowScheduleModal(false);
   };
 
+  // Remove userData mock object
+  // Use profile and progress state from API for all user info, stats, and personalized plan
+  // Example: Replace userData.name with profile?.name, etc.
   const userData = {
     name: 'Jamie Smith',
     currentSeverity: 'mild' as 'none' | 'mild' | 'severe',
@@ -220,7 +223,7 @@ const DashboardPage: React.FC = () => {
     visible: { opacity: 1, y: 0 },
   };
 
-    if (!userData) {
+    if (!profile) {
     return (
       <div className="min-h-screen flex items-center justify-center text-gray-500">
         <p>No user data found. Please complete onboarding.</p>

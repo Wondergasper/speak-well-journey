@@ -4,10 +4,10 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft, Play, Clock, Target, Award } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
-import { exercisesBySeverity, Exercise } from '@/data/exercises';
+import { exercisesAPI } from '@/services/api';
 
 const SessionPage: React.FC = () => {
-  const [exercises, setExercises] = useState<Exercise[]>([]);
+  const [exercises, setExercises] = useState<any[]>([]); // Changed type to any[] as Exercise type is removed
   const [userSeverity, setUserSeverity] = useState<string>('mild');
   const navigate = useNavigate();
 
@@ -15,10 +15,17 @@ const SessionPage: React.FC = () => {
     // Get user severity from localStorage or default to mild
     const storedSeverity = localStorage.getItem('userSeverity') || 'mild';
     setUserSeverity(storedSeverity);
-    
-    // Get exercises for user's severity level
-    const severityExercises = exercisesBySeverity[storedSeverity] || [];
-    setExercises(severityExercises);
+
+    // Fetch exercises for user's severity from backend
+    const fetchExercises = async () => {
+      try {
+        const exercises = await exercisesAPI.getAll({ severity: storedSeverity });
+        setExercises(exercises);
+      } catch (err) {
+        setExercises([]);
+      }
+    };
+    fetchExercises();
   }, []);
 
   const getSeverityColor = (severity: string) => {
@@ -49,7 +56,7 @@ const SessionPage: React.FC = () => {
     }
   };
 
-  const handleExerciseClick = (exercise: Exercise) => {
+  const handleExerciseClick = (exercise: any) => { // Changed type to any
     navigate(`/session/exercise/${exercise.id}`, { state: { exercise } });
   };
 

@@ -347,6 +347,16 @@ export const notificationsAPI = {
   },
 };
 
+// Onboarding API
+export const onboardingAPI = {
+  save: async (data: any) => {
+    return await apiCall('/onboarding', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  },
+};
+
 // Export all APIs
 export const api = {
   auth: authAPI,
@@ -357,6 +367,7 @@ export const api = {
   profile: profileAPI,
   settings: settingsAPI,
   notifications: notificationsAPI,
+  onboarding: onboardingAPI,
 };
 
 export default api; 

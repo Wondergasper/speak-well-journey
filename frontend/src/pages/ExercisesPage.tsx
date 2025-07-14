@@ -39,37 +39,37 @@ import {
   Timer,
   BarChart3
 } from 'lucide-react';
-import { exercisesBySeverity, Exercise } from '@/data/exercises';
+import { exercisesAPI } from '@/services/api';
 import { useNavigate } from 'react-router-dom';
 import Navbar from '@/components/Navbar';
 
 const ExercisesPage: React.FC = () => {
-  const [exercises, setExercises] = useState<Exercise[]>([]);
-  const [filteredExercises, setFilteredExercises] = useState<Exercise[]>([]);
+  const [exercises, setExercises] = useState<any[]>([]); // Changed type to any[] as Exercise type is removed
+  const [filteredExercises, setFilteredExercises] = useState<any[]>([]); // Changed type to any[]
   const [searchTerm, setSearchTerm] = useState('');
   const [severityFilter, setSeverityFilter] = useState<string>('all');
   const [categoryFilter, setCategoryFilter] = useState<string>('all');
   const [activeCategory, setActiveCategory] = useState<string>('all');
   const [loading, setLoading] = useState(true);
   const [favorites, setFavorites] = useState<string[]>([]);
+  const [error, setError] = useState<string | null>(null);
 
   const navigate = useNavigate();
 
-  // Mock user progress data
-  const userProgress = {
-    completedExercises: 23,
-    totalExercises: 47,
-    currentStreak: 5,
-    favoriteCategory: 'Breathing Techniques'
-  };
-
   useEffect(() => {
-    // Simulate loading
-    setTimeout(() => {
-      const allExercises = Object.values(exercisesBySeverity).flat();
-      setExercises(allExercises);
-      setLoading(false);
-    }, 1000);
+    const fetchExercises = async () => {
+      setLoading(true);
+      setError(null);
+      try {
+        const allExercises = await exercisesAPI.getAll();
+        setExercises(allExercises);
+      } catch (err) {
+        setError('Failed to load exercises.');
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchExercises();
   }, []);
 
   useEffect(() => {
@@ -122,7 +122,7 @@ const ExercisesPage: React.FC = () => {
     }
   };
 
-  const handleExerciseClick = (exercise: Exercise) => {
+  const handleExerciseClick = (exercise: any) => { // Changed type to any
     navigate(`/session-exercise`, { state: { exercise } });
   };
 
@@ -145,6 +145,14 @@ const ExercisesPage: React.FC = () => {
 
   const getUniqueCategories = () => Array.from(new Set(exercises.map(exercise => exercise.category)));
 
+  // Add fallback userProgress definition before return
+  const userProgress = {
+    completedExercises: 0, // You can update this with real progress data if available
+    totalExercises: exercises.length,
+    currentStreak: 0,
+    favoriteCategory: '',
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900">
@@ -154,6 +162,24 @@ const ExercisesPage: React.FC = () => {
             <div className="text-center">
               <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-therapy-purple-500 mx-auto"></div>
               <p className="mt-4 text-gray-600 dark:text-gray-300">Loading exercises...</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900">
+        <Navbar />
+        <div className="container mx-auto px-4 py-8">
+          <div className="flex items-center justify-center min-h-[400px]">
+            <div className="text-center">
+              <div className="w-12 h-12 rounded-full bg-red-100 dark:bg-red-900/20 flex items-center justify-center mx-auto mb-4">
+                <span className="text-red-500 text-3xl">!</span>
+              </div>
+              <p className="mt-4 text-red-600 dark:text-red-300">{error}</p>
             </div>
           </div>
         </div>

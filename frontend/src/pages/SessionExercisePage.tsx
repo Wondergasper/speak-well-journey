@@ -8,6 +8,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { ArrowLeft, Play, Clock, Target, Award, BookOpen, CheckCircle } from 'lucide-react';
 import { Exercise } from '@/data/exercises';
+import { exercisesAPI } from '@/services/api';
 
 const SessionExercisePage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -20,16 +21,19 @@ const SessionExercisePage: React.FC = () => {
   const [confidenceRating, setConfidenceRating] = useState<number>(3);
 
   useEffect(() => {
-    if (location.state?.exercise) {
-      setExercise(location.state.exercise as Exercise);
-    } else if (id) {
-      // Fallback: find exercise by ID from all exercises
-      const allExercises = Object.values(require('@/data/exercises').exercisesBySeverity).flat();
-      const foundExercise = allExercises.find((ex: Exercise) => ex.id === parseInt(id)) as Exercise | undefined;
-      if (foundExercise) {
-        setExercise(foundExercise);
+    const fetchExercise = async () => {
+      if (location.state?.exercise) {
+        setExercise(location.state.exercise);
+      } else if (id) {
+        try {
+          const ex = await exercisesAPI.getById(Number(id));
+          setExercise(ex);
+        } catch (err) {
+          setExercise(null);
+        }
       }
-    }
+    };
+    fetchExercise();
   }, [id, location.state]);
 
   const getSeverityColor = (severity: string) => {

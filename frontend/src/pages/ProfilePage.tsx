@@ -46,8 +46,8 @@ interface ProfileData {
   avatar?: string;
   bio?: string;
   age?: number;
-  severity?: string;
-  goals?: string[];
+  severity?: 'none' | 'mild' | 'moderate' | 'severe';
+  therapy_goals?: string;
   preferences?: {
     notifications: boolean;
     emailUpdates: boolean;
@@ -62,14 +62,6 @@ interface ProfileData {
     exercisesCompleted: number;
     improvementScore: number;
   };
-  achievements?: Array<{
-    id: string;
-    title: string;
-    description: string;
-    icon: string;
-    unlocked: boolean;
-    date?: string;
-  }>;
 }
 
 const ProfilePage: React.FC = () => {
@@ -82,7 +74,7 @@ const ProfilePage: React.FC = () => {
     bio: '',
     age: '',
     severity: '',
-    goals: [] as string[]
+    therapy_goals: ''
   });
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -90,77 +82,10 @@ const ProfilePage: React.FC = () => {
   const [success, setSuccess] = useState<string | null>(null);
 
   // Mock data for demonstration - replace with actual API calls
-  const mockProfile: ProfileData = {
-    name: 'John Doe',
-    email: 'john.doe@example.com',
-    joinDate: '2024-01-15',
-    avatar: '',
-    bio: 'Dedicated to improving my speech fluency through consistent practice and therapy.',
-    age: 28,
-    severity: 'moderate',
-    goals: ['Reduce stuttering frequency', 'Improve confidence in public speaking', 'Master breathing techniques'],
-    preferences: {
-      notifications: true,
-      emailUpdates: false,
-      darkMode: true,
-      accessibility: true
-    },
-    stats: {
-      totalSessions: 47,
-      totalMinutes: 1240,
-      currentStreak: 12,
-      longestStreak: 21,
-      exercisesCompleted: 156,
-      improvementScore: 78
-    },
-    achievements: [
-      {
-        id: '1',
-        title: 'First Steps',
-        description: 'Completed your first speech therapy session',
-        icon: '🎯',
-        unlocked: true,
-        date: '2024-01-16'
-      },
-      {
-        id: '2',
-        title: 'Week Warrior',
-        description: 'Maintained a 7-day practice streak',
-        icon: '🔥',
-        unlocked: true,
-        date: '2024-01-23'
-      },
-      {
-        id: '3',
-        title: 'Breathing Master',
-        description: 'Completed 50 breathing exercises',
-        icon: '🫁',
-        unlocked: true,
-        date: '2024-02-01'
-      },
-      {
-        id: '4',
-        title: 'Confidence Builder',
-        description: 'Achieved 80% improvement score',
-        icon: '⭐',
-        unlocked: false
-      },
-      {
-        id: '5',
-        title: 'Consistency King',
-        description: 'Maintained a 30-day practice streak',
-        icon: '👑',
-        unlocked: false
-      }
-    ]
-  };
-
   useEffect(() => {
     const fetchProfile = async () => {
       try {
-        // Replace with actual API call
-        // const data = await profileAPI.getProfile();
-        const data = mockProfile;
+        const data = await profileAPI.getProfile();
         setProfile(data);
         setForm({
           name: data.name,
@@ -168,7 +93,7 @@ const ProfilePage: React.FC = () => {
           bio: data.bio || '',
           age: data.age?.toString() || '',
           severity: data.severity || '',
-          goals: data.goals || []
+          therapy_goals: data.therapy_goals || ''
         });
       } catch (err) {
         setError('Failed to load profile.');
@@ -188,9 +113,14 @@ const ProfilePage: React.FC = () => {
     setError(null);
     setSuccess(null);
     try {
-      // Replace with actual API call
-      // const updated = await profileAPI.updateProfile(form);
-      const updated = { ...profile, ...form };
+      const updated = await profileAPI.updateProfile({
+        name: form.name,
+        email: form.email,
+        bio: form.bio,
+        age: form.age ? parseInt(form.age) : undefined,
+        severity: form.severity as 'none' | 'mild' | 'moderate' | 'severe',
+        therapy_goals: form.therapy_goals
+      });
       setProfile(updated);
       setEditMode(false);
       setSuccess('Profile updated successfully!');
@@ -310,7 +240,6 @@ const ProfilePage: React.FC = () => {
         <div className="flex flex-wrap gap-2 mb-8">
           {[
             { id: 'overview', label: 'Overview', icon: User },
-            { id: 'achievements', label: 'Achievements', icon: Trophy },
             { id: 'progress', label: 'Progress', icon: TrendingUp },
             { id: 'settings', label: 'Settings', icon: Settings },
             { id: 'security', label: 'Security', icon: Shield }
@@ -382,12 +311,12 @@ const ProfilePage: React.FC = () => {
                   </CardHeader>
                   <CardContent>
                     <div className="space-y-3">
-                      {profile.goals?.map((goal, index) => (
-                        <div key={index} className="flex items-center gap-3 p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
+                      {profile.therapy_goals && (
+                        <div className="flex items-center gap-3 p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
                           <CheckCircle className="h-5 w-5 text-green-500" />
-                          <span className="text-gray-700 dark:text-gray-300">{goal}</span>
+                          <span className="text-gray-700 dark:text-gray-300">{profile.therapy_goals}</span>
                         </div>
-                      ))}
+                      )}
                     </div>
                   </CardContent>
                 </Card>
@@ -421,54 +350,6 @@ const ProfilePage: React.FC = () => {
                   </CardContent>
                 </Card>
               </>
-            )}
-
-            {activeTab === 'achievements' && (
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center">
-                    <Trophy className="h-5 w-5 mr-2" />
-                    Achievements
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {profile.achievements?.map((achievement) => (
-                      <div
-                        key={achievement.id}
-                        className={`p-4 rounded-lg border-2 ${
-                          achievement.unlocked
-                            ? 'border-green-200 bg-green-50 dark:bg-green-900/20 dark:border-green-800'
-                            : 'border-gray-200 bg-gray-50 dark:bg-gray-800 dark:border-gray-700'
-                        }`}
-                      >
-                        <div className="flex items-center gap-3">
-                          <div className={`text-2xl ${achievement.unlocked ? '' : 'grayscale opacity-50'}`}>
-                            {achievement.icon}
-                          </div>
-                          <div className="flex-1">
-                            <h3 className={`font-semibold ${
-                              achievement.unlocked ? 'text-gray-900 dark:text-white' : 'text-gray-500 dark:text-gray-400'
-                            }`}>
-                              {achievement.title}
-                            </h3>
-                            <p className={`text-sm ${
-                              achievement.unlocked ? 'text-gray-600 dark:text-gray-300' : 'text-gray-400 dark:text-gray-500'
-                            }`}>
-                              {achievement.description}
-                            </p>
-                            {achievement.unlocked && achievement.date && (
-                              <p className="text-xs text-green-600 dark:text-green-400 mt-1">
-                                Unlocked {new Date(achievement.date).toLocaleDateString()}
-                              </p>
-                            )}
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </CardContent>
-              </Card>
             )}
 
             {activeTab === 'progress' && (
@@ -662,15 +543,7 @@ const ProfilePage: React.FC = () => {
               </CardHeader>
               <CardContent>
                 <div className="space-y-3">
-                  {profile.achievements?.filter(a => a.unlocked).slice(0, 3).map((achievement) => (
-                    <div key={achievement.id} className="flex items-center gap-3 p-2 bg-green-50 dark:bg-green-900/20 rounded-lg">
-                      <span className="text-lg">{achievement.icon}</span>
-                      <div>
-                        <p className="font-medium text-sm">{achievement.title}</p>
-                        <p className="text-xs text-gray-500">{achievement.date && new Date(achievement.date).toLocaleDateString()}</p>
-                      </div>
-                    </div>
-                  ))}
+                  {/* This section is no longer needed as achievements are removed */}
                 </div>
               </CardContent>
             </Card>
@@ -781,12 +654,25 @@ const ProfilePage: React.FC = () => {
                       <SelectValue placeholder="Select severity" />
                     </SelectTrigger>
                     <SelectContent>
+                      <SelectItem value="none">None</SelectItem>
                       <SelectItem value="mild">Mild</SelectItem>
                       <SelectItem value="moderate">Moderate</SelectItem>
                       <SelectItem value="severe">Severe</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
+              </div>
+
+              <div>
+                <Label htmlFor="therapy_goals">Your Therapy Goals</Label>
+                <Textarea
+                  id="therapy_goals"
+                  name="therapy_goals"
+                  value={form.therapy_goals}
+                  onChange={handleChange}
+                  placeholder="Write down your therapy goals..."
+                  rows={3}
+                />
               </div>
 
               <div className="flex gap-3 pt-4">
@@ -817,7 +703,7 @@ const ProfilePage: React.FC = () => {
                       bio: profile.bio || '',
                       age: profile.age?.toString() || '',
                       severity: profile.severity || '',
-                      goals: profile.goals || []
+                      therapy_goals: profile.therapy_goals || ''
                     });
                   }}
                   className="flex-1"

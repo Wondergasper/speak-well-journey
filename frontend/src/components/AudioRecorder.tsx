@@ -33,6 +33,16 @@ const AudioRecorder: React.FC<AudioRecorderProps> = ({
   const { toast } = useToast();
 
   useEffect(() => {
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+      setPermissionGranted(false);
+      setShowPermissionModal(true);
+      toast({
+        variant: "destructive",
+        title: "Recording Not Supported",
+        description: "Your browser does not support audio recording. Please use a modern browser over HTTPS."
+      });
+      return;
+    }
     // Check for microphone permission status when component mounts
     navigator.mediaDevices.getUserMedia({ audio: true })
       .then(() => {
@@ -61,6 +71,16 @@ const AudioRecorder: React.FC<AudioRecorderProps> = ({
   };
 
   const checkMicrophoneAccess = async () => {
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+      setPermissionGranted(false);
+      setShowPermissionModal(true);
+      toast({
+        variant: "destructive",
+        title: "Recording Not Supported",
+        description: "Your browser does not support audio recording. Please use a modern browser over HTTPS."
+      });
+      return false;
+    }
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       stream.getTracks().forEach(track => track.stop());
@@ -74,6 +94,16 @@ const AudioRecorder: React.FC<AudioRecorderProps> = ({
   };
   
   const requestMicrophonePermission = async () => {
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+      setPermissionGranted(false);
+      setShowPermissionModal(true);
+      toast({
+        variant: "destructive",
+        title: "Recording Not Supported",
+        description: "Your browser does not support audio recording. Please use a modern browser over HTTPS."
+      });
+      return;
+    }
     try {
       await navigator.mediaDevices.getUserMedia({ audio: true });
       setPermissionGranted(true);
@@ -102,6 +132,16 @@ const AudioRecorder: React.FC<AudioRecorderProps> = ({
   };
 
   const startRecording = async () => {
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+      setPermissionGranted(false);
+      setShowPermissionModal(true);
+      toast({
+        variant: "destructive",
+        title: "Recording Not Supported",
+        description: "Your browser does not support audio recording. Please use a modern browser over HTTPS."
+      });
+      return;
+    }
     const hasAccess = await checkMicrophoneAccess();
     if (!hasAccess) return;
 
