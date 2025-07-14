@@ -39,13 +39,13 @@ import {
   Timer,
   BarChart3
 } from 'lucide-react';
-import { exercisesAPI } from '@/services/api';
+import { exercisesAPI, progressAPI, Exercise, ProgressEntry } from '@/services/api';
 import { useNavigate } from 'react-router-dom';
 import Navbar from '@/components/Navbar';
 
 const ExercisesPage: React.FC = () => {
-  const [exercises, setExercises] = useState<any[]>([]); // Changed type to any[] as Exercise type is removed
-  const [filteredExercises, setFilteredExercises] = useState<any[]>([]); // Changed type to any[]
+  const [exercises, setExercises] = useState<Exercise[]>([]);
+  const [filteredExercises, setFilteredExercises] = useState<Exercise[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [severityFilter, setSeverityFilter] = useState<string>('all');
   const [categoryFilter, setCategoryFilter] = useState<string>('all');
@@ -53,23 +53,28 @@ const ExercisesPage: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [favorites, setFavorites] = useState<string[]>([]);
   const [error, setError] = useState<string | null>(null);
+  const [progress, setProgress] = useState<ProgressEntry[]>([]);
 
   const navigate = useNavigate();
 
   useEffect(() => {
-    const fetchExercises = async () => {
+    const fetchExercisesAndProgress = async () => {
       setLoading(true);
       setError(null);
       try {
-        const allExercises = await exercisesAPI.getAll();
+        const [allExercises, progressData] = await Promise.all([
+          exercisesAPI.getAll(),
+          progressAPI.getHistory(),
+        ]);
         setExercises(allExercises);
+        setProgress(progressData.history || []);
       } catch (err) {
-        setError('Failed to load exercises.');
+        setError('Failed to load exercises or progress.');
       } finally {
         setLoading(false);
       }
     };
-    fetchExercises();
+    fetchExercisesAndProgress();
   }, []);
 
   useEffect(() => {
@@ -122,7 +127,7 @@ const ExercisesPage: React.FC = () => {
     }
   };
 
-  const handleExerciseClick = (exercise: any) => { // Changed type to any
+  const handleExerciseClick = (exercise: Exercise) => {
     navigate(`/session-exercise`, { state: { exercise } });
   };
 
@@ -145,13 +150,30 @@ const ExercisesPage: React.FC = () => {
 
   const getUniqueCategories = () => Array.from(new Set(exercises.map(exercise => exercise.category)));
 
-  // Add fallback userProgress definition before return
-  const userProgress = {
-    completedExercises: 0, // You can update this with real progress data if available
-    totalExercises: exercises.length,
-    currentStreak: 0,
-    favoriteCategory: '',
+  // Calculate user progress
+  const completedExercises = progress.length;
+  const totalExercises = exercises.length;
+  // Calculate current streak (consecutive days)
+  const getCurrentStreak = (entries: ProgressEntry[]): number => {
+    if (!entries.length) return 0;
+    // Sort by date descending
+    const sorted = [...entries].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+    let streak = 1;
+    let prev = new Date(sorted[0].date);
+    for (let i = 1; i < sorted.length; i++) {
+      const curr = new Date(sorted[i].date);
+      const diff = (prev.getTime() - curr.getTime()) / (1000 * 60 * 60 * 24);
+      if (diff === 1) {
+        streak++;
+        prev = curr;
+      } else if (diff > 1) {
+        break;
+      }
+    }
+    return streak;
   };
+  const currentStreak = getCurrentStreak(progress);
+  const progressPercent = totalExercises ? Math.round((completedExercises / totalExercises) * 100) : 0;
 
   if (loading) {
     return (
@@ -207,15 +229,15 @@ const ExercisesPage: React.FC = () => {
             {/* Progress Overview */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-2xl mx-auto">
               <div className="bg-white/10 backdrop-blur-sm rounded-xl p-4">
-                <div className="text-2xl font-bold">{userProgress.completedExercises}/{userProgress.totalExercises}</div>
+                <div className="text-2xl font-bold">{completedExercises}/{totalExercises}</div>
                 <div className="text-white/80">Exercises Completed</div>
               </div>
               <div className="bg-white/10 backdrop-blur-sm rounded-xl p-4">
-                <div className="text-2xl font-bold">{userProgress.currentStreak}</div>
+                <div className="text-2xl font-bold">{currentStreak}</div>
                 <div className="text-white/80">Day Streak</div>
               </div>
               <div className="bg-white/10 backdrop-blur-sm rounded-xl p-4">
-                <div className="text-2xl font-bold">{Math.round((userProgress.completedExercises / userProgress.totalExercises) * 100)}%</div>
+                <div className="text-2xl font-bold">{progressPercent}%</div>
                 <div className="text-white/80">Progress</div>
               </div>
             </div>
