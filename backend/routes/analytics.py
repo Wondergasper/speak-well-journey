@@ -11,32 +11,37 @@ analytics_bp = Blueprint('analytics', __name__)
 @analytics_bp.route('/dashboard', methods=['GET'])
 @jwt_required()
 def get_analytics_dashboard():
-    user_id = get_jwt_identity()
-    
-    # Time range filter
-    days = request.args.get('days', 30, type=int)
-    start_date = datetime.now() - timedelta(days=days)
-    
-    # Get progress data
-    progress_data = Progress.query.filter_by(user_id=user_id)\
-        .filter(Progress.created_at >= start_date)\
-        .order_by(Progress.created_at).all()
-    
-    # Get analysis results
-    analysis_data = AnalysisResult.query.filter_by(user_id=user_id)\
-        .filter(AnalysisResult.created_at >= start_date)\
-        .order_by(AnalysisResult.created_at).all()
-    
-    # Calculate advanced metrics
-    analytics = {
-        'overview': calculate_overview_metrics(progress_data, analysis_data),
-        'trends': calculate_trends(progress_data, analysis_data),
-        'performance': calculate_performance_metrics(progress_data, analysis_data),
-        'recommendations': generate_recommendations(progress_data, analysis_data),
-        'goals': calculate_goal_progress(user_id, progress_data)
-    }
-    
-    return jsonify(analytics)
+    try:
+        user_id = get_jwt_identity()
+        
+        # Time range filter
+        days = request.args.get('days', 30, type=int)
+        start_date = datetime.now() - timedelta(days=days)
+        
+        # Get progress data
+        progress_data = Progress.query.filter_by(user_id=user_id)\
+            .filter(Progress.created_at >= start_date)\
+            .order_by(Progress.created_at).all()
+        
+        # Get analysis results
+        analysis_data = AnalysisResult.query.filter_by(user_id=user_id)\
+            .filter(AnalysisResult.created_at >= start_date)\
+            .order_by(AnalysisResult.created_at).all()
+        
+        # Calculate advanced metrics
+        analytics = {
+            'overview': calculate_overview_metrics(progress_data, analysis_data),
+            'trends': calculate_trends(progress_data, analysis_data),
+            'performance': calculate_performance_metrics(progress_data, analysis_data),
+            'recommendations': generate_recommendations(progress_data, analysis_data),
+            'goals': calculate_goal_progress(user_id, progress_data)
+        }
+        
+        return jsonify(analytics)
+    except Exception as e:
+        import logging
+        logging.exception('Error in get_analytics_dashboard')
+        return jsonify({'error': 'Failed to fetch dashboard analytics', 'details': str(e)}), 500
 
 @analytics_bp.route('/detailed-report', methods=['GET'])
 @jwt_required()

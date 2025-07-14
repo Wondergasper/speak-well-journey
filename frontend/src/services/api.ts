@@ -380,6 +380,13 @@ export const userAPI = {
   },
 };
 
+// Analytics API
+export const analyticsAPI = {
+  getDashboard: async (): Promise<any> => {
+    return await apiCall<any>('/analytics/dashboard');
+  },
+};
+
 // Export all APIs
 export const api = {
   auth: authAPI,
@@ -392,6 +399,7 @@ export const api = {
   notifications: notificationsAPI,
   onboarding: onboardingAPI,
   user: userAPI,
+  analytics: analyticsAPI,
 };
 
 export default api; 

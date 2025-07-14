@@ -23,9 +23,10 @@ import { motion } from 'framer-motion';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Mic2 } from "lucide-react";
-import { profileAPI, progressAPI } from '@/services/api';
+import { profileAPI, progressAPI, analyticsAPI } from '@/services/api';
 import { useAuth } from '@/contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
+import { Progress } from '@/components/ui/progress';
 
 const DashboardPage: React.FC = () => {
   const { isAuthenticated, user } = useAuth();
@@ -37,6 +38,7 @@ const DashboardPage: React.FC = () => {
   const [progress, setProgress] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [analytics, setAnalytics] = useState<any>(null);
 
   useEffect(() => {
     // Check if user is authenticated
@@ -49,8 +51,10 @@ const DashboardPage: React.FC = () => {
       try {
         const profileData = await profileAPI.getProfile();
         const progressData = await progressAPI.getHistory();
+        const analyticsData = await analyticsAPI.getDashboard();
         setProfile(profileData);
         setProgress(progressData.history || []);
+        setAnalytics(analyticsData);
       } catch (err: any) {
         if (err.status === 401) {
           // Unauthorized - redirect to login
@@ -287,6 +291,104 @@ const DashboardPage: React.FC = () => {
                 </Card>
               ))}
             </motion.div>
+
+            {/* Analytics Insights Section */}
+            {analytics && (
+              <motion.div initial="hidden" animate="visible" variants={fadeUp} transition={{ delay: 0.15, duration: 0.5 }} className="mb-8">
+                <Card className="bg-gradient-to-br from-blue-50 to-purple-50 dark:from-blue-900 dark:to-purple-900 border-none shadow-md">
+                  <CardHeader>
+                    <CardTitle className="text-lg text-therapy-purple-700 dark:text-white flex items-center gap-2">
+                      <BarChart2 className="w-5 h-5 text-therapy-purple-500" /> Dashboard Insights
+                    </CardTitle>
+                    <CardDescription className="text-gray-600 dark:text-gray-300">Personalized analytics based on your recent activity</CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      {/* Overview */}
+                      <div>
+                        <h3 className="font-semibold text-md mb-2 text-therapy-purple-600 dark:text-therapy-purple-200">Overview</h3>
+                        <ul className="text-sm text-gray-700 dark:text-gray-200">
+                          {analytics.overview && Object.entries(analytics.overview).map(([key, value]) => (
+                            <li key={key}>
+                              <span className="font-medium capitalize">{key.replace(/_/g, ' ')}:</span> {
+                                typeof value === 'number' || typeof value === 'string'
+                                  ? value
+                                  : value === null || value === undefined
+                                    ? 'N/A'
+                                    : JSON.stringify(value)
+                              }
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                      {/* Trends */}
+                      <div>
+                        <h3 className="font-semibold text-md mb-2 text-therapy-purple-600 dark:text-therapy-purple-200">Trends</h3>
+                        <ul className="text-sm text-gray-700 dark:text-gray-200">
+                          {analytics.trends && Object.entries(analytics.trends).map(([key, value]) => (
+                            <li key={key}>
+                              <span className="font-medium capitalize">{key.replace(/_/g, ' ')}:</span> {
+                                typeof value === 'number' || typeof value === 'string'
+                                  ? value
+                                  : value === null || value === undefined
+                                    ? 'N/A'
+                                    : JSON.stringify(value)
+                              }
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                      {/* Performance */}
+                      <div>
+                        <h3 className="font-semibold text-md mb-2 text-therapy-purple-600 dark:text-therapy-purple-200">Performance</h3>
+                        <ul className="text-sm text-gray-700 dark:text-gray-200">
+                          {analytics.performance && Object.entries(analytics.performance).map(([key, value]) => (
+                            <li key={key}>
+                              <span className="font-medium capitalize">{key.replace(/_/g, ' ')}:</span> {
+                                typeof value === 'number' || typeof value === 'string'
+                                  ? value
+                                  : value === null || value === undefined
+                                    ? 'N/A'
+                                    : JSON.stringify(value)
+                              }
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                      {/* Recommendations */}
+                      <div>
+                        <h3 className="font-semibold text-md mb-2 text-therapy-purple-600 dark:text-therapy-purple-200">Recommendations</h3>
+                        <ul className="text-sm text-gray-700 dark:text-gray-200">
+                          {analytics.recommendations && analytics.recommendations.map((rec: string, idx: number) => (
+                            <li key={idx}>• {rec}</li>
+                          ))}
+                        </ul>
+                      </div>
+                      {/* Goals */}
+                      <div className="md:col-span-2">
+                        <h3 className="font-semibold text-md mb-2 text-therapy-purple-600 dark:text-therapy-purple-200">Goals</h3>
+                        {analytics.goals && Object.entries(analytics.goals).length > 0 ? (
+                          <ul className="space-y-4">
+                            {Object.entries(analytics.goals).map(([goalKey, goalObj]: [string, any]) => (
+                              <li key={goalKey} className="bg-gray-50 dark:bg-gray-800 p-4 rounded-md shadow-sm">
+                                <div className="flex justify-between items-center mb-1">
+                                  <span className="font-medium capitalize text-gray-700 dark:text-gray-200">{goalKey.replace(/_/g, ' ')}</span>
+                                  <span className="text-xs text-gray-500 dark:text-gray-400">{goalObj.current !== undefined ? goalObj.current.toFixed(1) : 0} / {goalObj.target}</span>
+                                </div>
+                                <Progress value={goalObj.progress} />
+                                <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">Progress: {goalObj.progress.toFixed(0)}%</div>
+                              </li>
+                            ))}
+                          </ul>
+                        ) : (
+                          <div className="text-gray-500 dark:text-gray-400">No goals data available.</div>
+                        )}
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              </motion.div>
+            )}
 
             {/* Today's Plan */}
             <motion.div
