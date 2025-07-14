@@ -26,7 +26,7 @@ import {
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import Navbar from '@/components/Navbar';
-import { profileAPI } from '@/services/api';
+import { profileAPI, progressAPI } from '@/services/api';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -80,10 +80,11 @@ const ProfilePage: React.FC = () => {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
+  const [recentActivity, setRecentActivity] = useState<any[]>([]);
 
   // Mock data for demonstration - replace with actual API calls
   useEffect(() => {
-    const fetchProfile = async () => {
+    const fetchProfileAndActivity = async () => {
       try {
         const data = await profileAPI.getProfile();
         setProfile(data);
@@ -95,13 +96,16 @@ const ProfilePage: React.FC = () => {
           severity: data.severity || '',
           therapy_goals: data.therapy_goals || ''
         });
+        // Fetch recent activity (last 5 progress entries)
+        const progress = await progressAPI.getHistory();
+        setRecentActivity((progress.history || []).slice(-5).reverse());
       } catch (err) {
         setError('Failed to load profile.');
       } finally {
         setLoading(false);
       }
     };
-    fetchProfile();
+    fetchProfileAndActivity();
   }, []);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
@@ -131,16 +135,31 @@ const ProfilePage: React.FC = () => {
     }
   };
 
-  const handlePreferenceChange = (key: string, value: boolean) => {
+  const handlePreferenceChange = async (key: string, value: boolean) => {
     if (profile) {
-      setProfile({
-        ...profile,
-        preferences: {
-          ...profile.preferences!,
-          [key]: value
-        }
-      });
+      const updatedPreferences = {
+        ...profile.preferences!,
+        [key]: value
+      };
+      try {
+        await profileAPI.updatePreferences(updatedPreferences);
+        setProfile({
+          ...profile,
+          preferences: updatedPreferences
+        });
+      } catch (err) {
+        setError('Failed to update preferences.');
+      }
     }
+  };
+
+  const handleChangePassword = async () => {
+    // Implement password change logic with backend POST /auth/change-password
+    // Show success/error messages as needed
+  };
+  const handleDeleteAccount = async () => {
+    // Implement account deletion logic with backend DELETE /user/account
+    // Show confirmation and success/error messages as needed
   };
 
   if (loading) {
@@ -331,21 +350,21 @@ const ProfilePage: React.FC = () => {
                   </CardHeader>
                   <CardContent>
                     <div className="space-y-4">
-                      <div className="flex items-center gap-3">
-                        <div className="h-2 w-2 bg-green-500 rounded-full"></div>
-                        <span className="text-gray-600 dark:text-gray-300">Completed breathing exercise session</span>
-                        <span className="text-gray-400 text-sm ml-auto">2 hours ago</span>
-                      </div>
-                      <div className="flex items-center gap-3">
-                        <div className="h-2 w-2 bg-blue-500 rounded-full"></div>
-                        <span className="text-gray-600 dark:text-gray-300">Achieved new personal best in fluency</span>
-                        <span className="text-gray-400 text-sm ml-auto">1 day ago</span>
-                      </div>
-                      <div className="flex items-center gap-3">
-                        <div className="h-2 w-2 bg-purple-500 rounded-full"></div>
-                        <span className="text-gray-600 dark:text-gray-300">Started 7-day challenge</span>
-                        <span className="text-gray-400 text-sm ml-auto">3 days ago</span>
-                      </div>
+                      {recentActivity.length === 0 ? (
+                        <div className="text-gray-500">No recent activity.</div>
+                      ) : (
+                        recentActivity.map((entry, idx) => (
+                          <div key={idx} className="flex items-center gap-3">
+                            <div className="h-2 w-2 bg-green-500 rounded-full"></div>
+                            <span className="text-gray-600 dark:text-gray-300">
+                              Completed exercise (score: {entry.score})
+                            </span>
+                            <span className="text-gray-400 text-sm ml-auto">
+                              {new Date(entry.date).toLocaleString()}
+                            </span>
+                          </div>
+                        ))
+                      )}
                     </div>
                   </CardContent>
                 </Card>
@@ -477,33 +496,21 @@ const ProfilePage: React.FC = () => {
                     <div>
                       <h3 className="font-semibold mb-3">Change Password</h3>
                       <div className="space-y-3">
-                        <Input type="password" placeholder="Current Password" />
-                        <Input type="password" placeholder="New Password" />
-                        <Input type="password" placeholder="Confirm New Password" />
-                        <Button className="bg-therapy-purple-500 hover:bg-therapy-purple-700">
+                        <Input type="password" placeholder="Current Password" id="currentPassword" />
+                        <Input type="password" placeholder="New Password" id="newPassword" />
+                        <Input type="password" placeholder="Confirm New Password" id="confirmNewPassword" />
+                        <Button className="bg-therapy-purple-500 hover:bg-therapy-purple-700" onClick={handleChangePassword}>
                           Update Password
                         </Button>
                       </div>
                     </div>
-                    
                     <Separator />
-                    
-                    <div>
-                      <h3 className="font-semibold mb-3">Two-Factor Authentication</h3>
-                      <p className="text-sm text-gray-600 dark:text-gray-300 mb-3">
-                        Add an extra layer of security to your account
-                      </p>
-                      <Button variant="outline">Enable 2FA</Button>
-                    </div>
-                    
-                    <Separator />
-                    
                     <div>
                       <h3 className="font-semibold mb-3">Account Deletion</h3>
                       <p className="text-sm text-gray-600 dark:text-gray-300 mb-3">
                         Permanently delete your account and all associated data
                       </p>
-                      <Button variant="destructive">Delete Account</Button>
+                      <Button variant="destructive" onClick={handleDeleteAccount}>Delete Account</Button>
                     </div>
                   </div>
                 </CardContent>
@@ -522,15 +529,15 @@ const ProfilePage: React.FC = () => {
                 <div className="space-y-4">
                   <div className="flex items-center justify-between">
                     <span className="text-gray-600 dark:text-gray-300">Sessions This Week</span>
-                    <span className="font-semibold">5</span>
+                    <span className="font-semibold">{profile.stats?.totalSessions || 0}</span>
                   </div>
                   <div className="flex items-center justify-between">
                     <span className="text-gray-600 dark:text-gray-300">Average Score</span>
-                    <span className="font-semibold">8.2/10</span>
+                    <span className="font-semibold">{profile.stats?.improvementScore || 0}/100</span>
                   </div>
                   <div className="flex items-center justify-between">
                     <span className="text-gray-600 dark:text-gray-300">Next Goal</span>
-                    <span className="font-semibold text-therapy-purple-600">30-day streak</span>
+                    <span className="font-semibold text-therapy-purple-600">{profile.stats?.currentStreak || 0}-day streak</span>
                   </div>
                 </div>
               </CardContent>

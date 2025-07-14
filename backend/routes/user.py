@@ -34,3 +34,14 @@ def update_profile():
     
     db.session.commit()
     return jsonify({'message': 'Profile updated successfully'})
+
+@user_bp.route('/account', methods=['DELETE'])
+@jwt_required()
+def delete_account():
+    user_id = get_jwt_identity()
+    user = User.query.get(user_id)
+    if not user:
+        return jsonify({'error': 'User not found'}), 404
+    db.session.delete(user)
+    db.session.commit()
+    return jsonify({'message': 'Account deleted successfully'}), 200

@@ -12,6 +12,7 @@ class User(db.Model):
     severity = db.Column(db.String(32), default='mild')  # none, mild, moderate, severe
     therapy_goals = db.Column(db.Text)
     created_at = db.Column(db.DateTime, default=db.func.current_timestamp())
+    preferences = db.Column(db.JSON, default=dict)
 
     def set_password(self, password):
         self.password_hash = generate_password_hash(password)
@@ -20,6 +21,9 @@ class User(db.Model):
         if not self.password_hash:
             return False
         return check_password_hash(self.password_hash, password)
+
+    def get_preferences(self):
+        return self.preferences or {}
 
 class Exercise(db.Model):
     id = db.Column(db.Integer, primary_key=True)

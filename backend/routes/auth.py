@@ -4,6 +4,7 @@ from db import db
 from flask_jwt_extended import create_access_token, decode_token, jwt_required, get_jwt_identity, create_refresh_token
 from marshmallow import Schema, fields, ValidationError
 from datetime import timedelta
+from werkzeug.security import check_password_hash, generate_password_hash
 
 class SignupSchema(Schema):
     name = fields.Str(required=True)
@@ -106,4 +107,22 @@ def reset_password():
 def refresh():
     identity = get_jwt_identity()
     access_token = create_access_token(identity=identity)
-    return jsonify({'token': access_token}) 
+    return jsonify({'token': access_token})
+
+@auth_bp.route('/change-password', methods=['POST'])
+@jwt_required()
+def change_password():
+    user_id = get_jwt_identity()
+    user = User.query.get(user_id)
+    if not user:
+        return jsonify({'error': 'User not found'}), 404
+    data = request.get_json() or {}
+    current_password = data.get('current_password')
+    new_password = data.get('new_password')
+    if not current_password or not new_password:
+        return jsonify({'error': 'Current and new password required'}), 400
+    if not user.check_password(current_password):
+        return jsonify({'error': 'Current password is incorrect'}), 403
+    user.set_password(new_password)
+    db.session.commit()
+    return jsonify({'message': 'Password changed successfully'}), 200 

@@ -141,3 +141,24 @@ def get_user_statistics():
             'created_at': r.created_at.isoformat()
         } for r in recent_analyses]
     }) 
+
+@profile_bp.route('/preferences', methods=['PUT'])
+@jwt_required()
+def update_preferences():
+    user_id = get_jwt_identity()
+    user = User.query.get(user_id)
+    if not user:
+        return jsonify({'error': 'User not found'}), 404
+    data = request.get_json() or {}
+    user.preferences = data
+    db.session.commit()
+    return jsonify({'preferences': user.get_preferences()}), 200 
+
+@profile_bp.route('/preferences', methods=['GET'])
+@jwt_required()
+def get_preferences():
+    user_id = get_jwt_identity()
+    user = User.query.get(user_id)
+    if not user:
+        return jsonify({'error': 'User not found'}), 404
+    return jsonify({'preferences': user.get_preferences()}), 200 

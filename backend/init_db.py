@@ -1,6 +1,7 @@
 from app import app, db
 from models import User, Exercise, Progress, AnalysisResult
 from werkzeug.security import generate_password_hash
+import sqlite3
 
 def init_database():
     with app.app_context():
@@ -221,6 +222,16 @@ def init_database():
 
             db.session.commit()
             print("Evidence-based exercises added successfully!")
+
+        # Migration: Add preferences column if not exists
+        conn = sqlite3.connect('instance/speech_therapy.db')
+        c = conn.cursor()
+        try:
+            c.execute("ALTER TABLE user ADD COLUMN preferences JSON")
+        except Exception as e:
+            print("[Migration] Preferences column may already exist or not supported:", e)
+        conn.commit()
+        conn.close()
 
         print("Database initialized successfully!")
 

@@ -51,6 +51,7 @@ const App = () => (
             <Route path="/learn-more" element={<LearnMorePage />} />
             <Route path="/session" element={<SessionPage/>} />
             <Route path="/session-exercise" element={<SessionExercisePage/>} />
+            <Route path="/session/exercise/:id" element={<SessionExercisePage />} />
             <Route path="/notifications" element={<NotificationsPage />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
